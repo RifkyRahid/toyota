@@ -1,0 +1,195 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------
+
+enum Role {
+  ADMIN
+  SUPERADMIN
+}
+
+enum CarCategory {
+  MPV
+  SUV
+  HATCHBACK
+  SEDAN
+  COMMERCIAL
+  HYBRID_EV
+}
+
+enum LeadStatus {
+  BARU
+  DIHUBUNGI
+  PROSES_KREDIT
+  DEAL
+  BATAL
+}
+
+// ------------------------------------------------------
+// 1. AUTENTIKASI ADMIN
+// ------------------------------------------------------
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String   // Hashed using bcrypt / argon2
+  role      Role     @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// ------------------------------------------------------
+// 2. KATALOG MOBIL (PARENT - CHILD RELATION)
+// ------------------------------------------------------
+
+model CarModel {
+  id             String      @id @default(cuid())
+  name           String      // Contoh: "All New Kijang Innova Zenix"
+  slug           String      @unique // Contoh: "innova-zenix-batam" (SEO-friendly)
+  category       CarCategory @default(MPV)
+  heroImage      String      // Path gambar transparan utama (/uploads/...)
+  startingPrice  BigInt      // Cache harga terendah untuk query sorting/filter cepat
+  isPromo        Boolean     @default(false) // Toggle badge "PROMO BULAN INI"
+  promoLabel     String?     // Contoh: "DP Ringan 15 Juta" atau "Bunga 0%"
+  brochurePdfUrl String?     // Path file spesifikasi PDF khusus model ini
+  displayOrder   Int         @default(0) // Urutan tampilan di homepage
+  isActive       Boolean     @default(true)
+
+  // Relasi ke Varian Tipe (Child)
+  variants       CarVariant[]
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([category, isActive])
+  @@index([isPromo])
+  @@map("car_models")
+}
+
+model CarVariant {
+  id             String   @id @default(cuid())
+  carModelId     String
+  carModel       CarModel @relation(fields: [carModelId], references: [id], onDelete: Cascade)
+
+  name           String   // Contoh: "2.0 G CVT", "2.0 V CVT", "2.0 Q HV Modellista"
+  price          BigInt   // Harga OTR Batam aktual (Angka penuh, misal: 437700000)
+  image          String?  // Foto sudut khusus tipe ini (opsional, fallback ke heroImage)
+
+  // Fitur Unggulan (Pills / Tag Input)
+  keyFeatures    String[] // Contoh: ["LED Headlamp", "10 inch Head Unit", "Electric Parking Brake"]
+
+  // Spesifikasi Teknis Terperinci (Accordion Collapsible)
+  engineType     String?  // Contoh: "M20A-FKS 4 Silinder Segaris 16 Katup DOHC"
+  displacement   Int?     // Kapasitas Mesin (cc), misal: 1987
+  transmission   String?  // Contoh: "CVT 10-Speed Luxury"
+  fuelType       String?  // Contoh: "Bensin" / "Bensin + Hybrid Electric"
+  maxPower       String?  // Contoh: "174 PS / 6600 rpm"
+  maxTorque      String?  // Contoh: "20.9 Kgm / 4500-4900 rpm"
+  seatingCapacity Int?    // Kapasitas Penumpang (misal: 7 atau 8)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([carModelId])
+  @@map("car_variants")
+}
+
+// ------------------------------------------------------
+// 3. LEAD GENERATION (PROSPEK DARI LEAD GATE)
+// ------------------------------------------------------
+
+model Lead {
+  id          String     @id @default(cuid())
+  name        String     // Nama Calon Pembeli
+  whatsapp    String     // Nomor WhatsApp (Format: 08xx atau 628xx)
+  carInterest String?    // Unit yang diminati (misal: "Innova Zenix")
+  sourcePage  String?    // URL/Section tempat form di-submit
+  status      LeadStatus @default(BARU)
+  notes       String?    // Catatan internal sales setelah follow-up
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+// ------------------------------------------------------
+// 4. KONTEN MARKETING (BANNER & BLOG SEO)
+// ------------------------------------------------------
+
+model Banner {
+  id           String   @id @default(cuid())
+  title        String   // Judul Promo (HTML Overlay, bukan gambar mati)
+  subtitle     String?  // Subjudul / Keterangan Singkat
+  ctaText      String   @default("Minta Penawaran")
+  ctaUrl       String   // Tautan tujuan (bisa anchor #katalog atau link WA)
+  imageUrl     String   // Background image banner (/uploads/...)
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("banners")
+}
+
+model Blog {
+  id          String   @id @default(cuid())
+  title       String   // Judul Artikel
+  slug        String   @unique // Contoh: "daftar-harga-toyota-batam-2026"
+  excerpt     String   // Ringkasan 1-2 kalimat untuk kartu depan & meta-description
+  content     String   // Payload HTML dari Tiptap (wajib disanitasi)
+  coverImage  String   // Gambar sampul artikel
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isPublished, createdAt])
+  @@map("blogs")
+}
+
+// ------------------------------------------------------
+// 5. SITE SETTINGS & PROFIL SALES (SINGLETON ROW)
+// ------------------------------------------------------
+
+model SiteSetting {
+  id                Int      @id @default(1) // Selalu bernilai 1 (Tabel 1 baris)
+  dealershipName    String   @default("Agung Toyota Batam")
+  dealershipAddress String   // Alamat lengkap showroom di Batam
+  googleMapsUrl     String?  // Link peta showroom
+
+  // Data Profil Sales Representative
+  salesName         String   // Nama Sales
+  salesTitle        String   @default("Certified Sales Executive")
+  salesPhone        String   // Nomor kontak telepon
+  salesWhatsapp     String   // Nomor WhatsApp aktif (format internasional: 628xxx)
+  salesPhotoUrl     String   // Foto portrait resmi (rasio 3:4)
+  salesBio          String?  // Slogan atau nilai jual (misal: "Bantu kredit sampai approved")
+
+  // Aset Brand & File Penting
+  headerLogoUrl     String   // Logo resmi di Navbar
+  footerLogoUrl     String   // Logo monokrom di Footer
+  faviconUrl        String   // Icon tab browser
+  pricelistPdfUrl   String   // File PDF/Gambar lembar harga OTR Batam terbaru
+
+  // Social Media Link
+  instagramUrl      String?
+  facebookUrl       String?
+  tiktokUrl         String?
+
+  updatedAt         DateTime @updatedAt
+
+  @@map("site_settings")
+}
