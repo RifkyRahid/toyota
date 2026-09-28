@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { LeadStatus } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 // ── POST /api/leads ───────────────────────────────────────────
 // Endpoint publik: menerima data prospek dari form Lead Gate.
 // Tidak memerlukan autentikasi.

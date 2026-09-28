@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 // ── GET /api/settings ─────────────────────────────────────────
 // Mengambil data pengaturan diler & profil sales (baris singleton id=1).
 // Endpoint ini bisa dipanggil dari Server Component publik (logo, WA, dll).

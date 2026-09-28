@@ -1,5 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { Geist } from "next/font/google";
+import { GoogleAnalytics } from '@next/third-parties/google';
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: {
@@ -16,8 +21,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id">
-      <body>{children}</body>
+    <html lang="id" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        {children}
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-XXXXXXXXXX"} />
+      </body>
     </html>
   );
 }

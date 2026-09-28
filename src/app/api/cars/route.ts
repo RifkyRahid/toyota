@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/serialize';
 import { CarCategory } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 // ── GET /api/cars ─────────────────────────────────────────────
 // Mengambil daftar semua model mobil beserta variannya.
 // Query params:
