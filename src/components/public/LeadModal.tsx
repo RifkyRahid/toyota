@@ -15,7 +15,7 @@ import { trackDownloadPricelist, trackClickToWa } from '@/lib/analytics';
 interface LeadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  pricelistPdfUrl: string;
+  pricelistPdfUrl?: string | null;
   salesWhatsapp: string;
 }
 
@@ -24,7 +24,7 @@ type Step = 'form' | 'success';
 export default function LeadModal({
   open,
   onOpenChange,
-  pricelistPdfUrl,
+  pricelistPdfUrl = '/uploads/pricelist-batam-2026.pdf',
   salesWhatsapp,
 }: LeadModalProps) {
   const [step, setStep] = useState<Step>('form');
@@ -70,7 +70,8 @@ export default function LeadModal({
 
       // Trigger download and track
       trackDownloadPricelist({ name, whatsapp });
-      window.open(pricelistPdfUrl, '_blank');
+      const targetUrl = pricelistPdfUrl || '/uploads/pricelist-batam-2026.pdf';
+      window.open(targetUrl, '_blank');
       setStep('success');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan. Coba lagi.');

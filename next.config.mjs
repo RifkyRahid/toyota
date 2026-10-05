@@ -4,9 +4,8 @@ const nextConfig = {
   reactStrictMode: true,
 
   images: {
-    // Format gambar yang dioptimasi oleh Next.js Image Optimizer
-    formats: ['image/avif', 'image/webp'],
-    // Daftar hostname eksternal yang diizinkan (tambahkan CDN jika diperlukan)
+    // Gambar sudah dikompresi dan dikonversi ke WebP oleh Sharp pada saat upload
+    unoptimized: true,
     remotePatterns: [],
   },
 

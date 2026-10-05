@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import type { Metadata } from 'next';
 import type { SerializedCarModel, SerializedCarVariant, SiteSetting } from '@/types';
 import { formatRupiah } from '@/lib/format';
@@ -102,14 +101,11 @@ export default async function CarDetailPage({ params }: Props) {
       {/* ── Gambar Hero Utama ──────────────────────────────────── */}
       <section className="py-8">
         <div className="container mx-auto px-4">
-          <div className="relative bg-gray-50 rounded-2xl flex items-center justify-center h-72 md:h-96 overflow-hidden">
-            <Image
+          <div className="bg-gray-50 rounded-2xl flex items-center justify-center h-72 md:h-96 overflow-hidden">
+            <img
               src={car.heroImage}
               alt={`Toyota ${car.name}`}
-              fill
-              priority
-              className="object-contain p-4 md:p-8"
-              sizes="(max-width: 768px) 100vw, 80vw"
+              className="max-h-full max-w-full object-contain p-4 md:p-8"
             />
           </div>
         </div>
