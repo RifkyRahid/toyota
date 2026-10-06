@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { trackClickToWa } from '@/lib/analytics';
 
 interface NavbarProps {
   salesWhatsapp: string;
@@ -76,6 +77,7 @@ export default function Navbar({ salesWhatsapp, logoUrl }: NavbarProps) {
               href={`https://wa.me/${salesWhatsapp}`}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackClickToWa({ source_button: 'NAVBAR' })}
               className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-md transition-colors shadow-sm"
             >
               Hubungi Sales
@@ -113,7 +115,10 @@ export default function Navbar({ salesWhatsapp, logoUrl }: NavbarProps) {
               href={`https://wa.me/${salesWhatsapp}`}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={handleLinkClick}
+              onClick={() => {
+                handleLinkClick();
+                trackClickToWa({ source_button: 'NAVBAR' });
+              }}
               className="mt-2 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-md transition-colors"
             >
               Hubungi Sales

@@ -193,3 +193,21 @@ model SiteSetting {
 
   @@map("site_settings")
 }
+
+// ------------------------------------------------------
+// 6. PELACAKAN AKTIVITAS CTA (CALL-TO-ACTION ANALYTICS)
+// ------------------------------------------------------
+
+model CtaClick {
+  id         String   @id @default(cuid())
+  carName    String?  // Nama mobil jika klik dari unit tertentu (misal: "Avanza")
+  buttonType String   // "KATALOG_CARD" | "VARIAN_DETAIL" | "FLOATING_WA" | "NAVBAR" | "MOBILE_BAR" | "PROMO_DETAIL" | "SALES_SECTION" | "FOOTER"
+  sourcePage String?  // Halaman asal, misal "/", "/katalog", "/promo/..."
+  createdAt  DateTime @default(now())
+
+  @@index([carName])
+  @@index([buttonType])
+  @@index([createdAt])
+  @@map("cta_clicks")
+}
+

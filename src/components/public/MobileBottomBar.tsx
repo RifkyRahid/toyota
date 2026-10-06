@@ -1,6 +1,7 @@
 'use client';
 
 import { buildWaUrl, formatRupiah } from '@/lib/format';
+import { trackClickToWa } from '@/lib/analytics';
 
 interface MobileBottomBarProps {
   price: string;
@@ -32,6 +33,12 @@ export default function MobileBottomBar({
           href={waUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() =>
+            trackClickToWa({
+              source_button: 'MOBILE_BAR',
+              car_name: `${carName} ${variantName}`,
+            })
+          }
           className="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold text-sm hover:bg-red-700 transition-colors"
         >
           Tanya WA

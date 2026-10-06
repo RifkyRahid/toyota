@@ -1,6 +1,9 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import type { SerializedCarModel } from '@/types';
+import { trackClickToWa } from '@/lib/analytics';
 
 // ── Helper ────────────────────────────────────────────────────
 /**
@@ -89,6 +92,7 @@ export default function CarCard({ car, salesWhatsapp }: CarCardProps) {
             href={waUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackClickToWa({ source_button: 'KATALOG_CARD', car_name: car.name })}
             className="flex-1 text-center bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
           >
             Tanya WA

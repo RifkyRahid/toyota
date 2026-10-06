@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { buildWaUrl } from '@/lib/format';
 import { getBlogBySlug, getSiteSettings } from '@/lib/data';
+import PromoWaButton from '@/components/public/PromoWaButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,14 +104,10 @@ export default async function PromoDetailPage({ params }: Props) {
                   Hubungi sales representatif resmi Toyota Batam untuk informasi diskon dan perhitungan simulasi kredit.
                 </p>
               </div>
-              <a
+              <PromoWaButton
                 href={buildWaUrl(salesWhatsapp, waMessage)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center shrink-0 bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg shadow-sm transition-colors text-sm"
-              >
-                Chat WhatsApp Sekarang
-              </a>
+                articleTitle={blog.title}
+              />
             </div>
           </div>
         </article>

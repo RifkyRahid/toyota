@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { buildWaUrl, formatRupiah } from '@/lib/format';
 import type { SerializedCarVariant } from '@/types';
+import { trackClickToWa } from '@/lib/analytics';
 
 interface VariantSelectorProps {
   variants: SerializedCarVariant[];
@@ -90,7 +91,13 @@ export default function VariantSelector({
           href={buildWaUrl(salesWhatsapp, buildWaMessage(variant))}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            trackClickToWa({
+              source_button: 'VARIAN_DETAIL',
+              car_name: `${carName} ${variant.name}`,
+            });
+          }}
           className="block w-full text-center bg-red-600 text-white text-sm font-semibold py-2 rounded-lg hover:bg-red-700 transition-colors"
         >
           Tanya Harga WA

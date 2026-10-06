@@ -25,8 +25,9 @@ interface AnalyticsChartProps {
 }
 
 export default function AnalyticsChart({ data }: AnalyticsChartProps) {
-  // Default mock/fallback data for 24 hours if analytics API has not received real data yet
-  const hoursData = data && data.length === 24 ? data : [
+  // Gunakan data riil jika ada interaksi, atau fallback ke simulasi jika baru pertama kali dipasang
+  const hasRealData = Boolean(data && data.some((count) => count > 0));
+  const hoursData = hasRealData && data && data.length === 24 ? data : [
     2, 1, 0, 0, 1, 3, 8, 18, 35, 52, 68, 74, 55, 62, 70, 85, 92, 80, 65, 48, 32, 22, 12, 5
   ];
 

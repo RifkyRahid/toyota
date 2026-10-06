@@ -3,6 +3,7 @@ import sharp, { type Sharp } from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 import crypto from 'crypto';
+import { getSession } from '@/lib/auth';
 
 // ── Konfigurasi ────────────────────────────────────────────────
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -38,6 +39,14 @@ function getUploadDir(): string {
  */
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Akses ditolak. Silakan login terlebih dahulu.' },
+        { status: 401 }
+      );
+    }
+
     const formData = await req.formData();
     const file = formData.get('file');
     const context = (formData.get('context') as UploadContext) ?? 'car';
@@ -50,7 +59,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── 2. Validasi MIME Type ─────────────────────────────────
+    // ── 2. Validasi ukuran file (Maks 10 MB) ───────────────────
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: 'Ukuran file terlalu besar. Maksimal 10 MB.' },
+        { status: 413 }
+      );
+    }
+
+    // ── 3. Validasi MIME Type ─────────────────────────────────
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
       return NextResponse.json(
         {

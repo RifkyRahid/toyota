@@ -1,6 +1,9 @@
+'use client';
+
 import Image from 'next/image';
 import { ShieldCheck, CheckCircle } from 'lucide-react';
 import type { SiteSetting } from '@/types';
+import { trackClickToWa } from '@/lib/analytics';
 
 interface SalesSectionProps {
   settings: Partial<SiteSetting>;
@@ -107,6 +110,7 @@ export default function SalesSection({ settings }: SalesSectionProps) {
                 href={waUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackClickToWa({ source_button: 'SALES_SECTION' })}
                 className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors text-sm"
               >
                 💬 Chat WhatsApp

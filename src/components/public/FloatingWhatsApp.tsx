@@ -20,7 +20,7 @@ export default function FloatingWhatsApp({ salesWhatsapp }: FloatingWhatsAppProp
       rel="noopener noreferrer"
       title="Chat WhatsApp"
       aria-label="Chat via WhatsApp"
-      onClick={() => trackClickToWa({ source_button: 'floating' })}
+      onClick={() => trackClickToWa({ source_button: 'FLOATING_WA' })}
       className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg transition-colors duration-200"
     >
       {/* Ping animation di belakang tombol */}

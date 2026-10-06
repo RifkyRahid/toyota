@@ -26,14 +26,19 @@ interface DashboardClientProps {
     status: string;
     createdAt: string;
   }>;
+  hourlyData?: number[];
+  totalClicks?: number;
 }
 
 export default function DashboardClient({
   totalLeads,
   newLeads,
   dealLeads,
+  totalCars,
   topCars,
   recentLeads,
+  hourlyData = [],
+  totalClicks = 0,
 }: DashboardClientProps) {
   const handleDownloadPdf = () => {
     try {
@@ -104,7 +109,7 @@ export default function DashboardClient({
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">
             Unit Terdaftar di Katalog
           </span>
-          <p className="text-3xl font-black text-gray-900 mt-2">{topCars.length}</p>
+          <p className="text-3xl font-black text-gray-900 mt-2">{totalCars || topCars.length}</p>
           <span className="text-[11px] text-gray-500 mt-1 block">Model mobil aktif tayang</span>
         </div>
       </div>
@@ -120,13 +125,18 @@ export default function DashboardClient({
               Distribusi interaksi pengguna per jam (Pukul 00:00 - 23:00) untuk acuan jadwal penayangan iklan / follow-up.
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200 self-start">
-            <span className="w-2 h-2 rounded-full bg-red-600" />
-            Aktifitas Pengunjung
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200">
+              <span className="w-2 h-2 rounded-full bg-red-600" />
+              Total Klik WA & Interaksi: <strong className="text-gray-900 ml-1">{totalClicks + totalLeads}</strong>
+            </span>
+            <span className="text-[11px] text-gray-400 bg-gray-100 px-2 py-1 rounded border border-gray-200">
+              {hourlyData.some((c) => c > 0) ? 'Data Riil' : 'Data Sampel Baseline'}
+            </span>
+          </div>
         </div>
 
-        <AnalyticsChart />
+        <AnalyticsChart data={hourlyData} />
       </div>
 
       {/* 2-Columns: Top 10 Cars + Latest Leads */}
@@ -138,7 +148,7 @@ export default function DashboardClient({
               <h2 className="text-base font-bold text-gray-900">
                 Top 10 Mobil Paling Diminati
               </h2>
-              <p className="text-xs text-gray-500 mt-0.5">Berdasarkan data prospek calon pembeli</p>
+              <p className="text-xs text-gray-500 mt-0.5">Berdasarkan data klik CTA WhatsApp & prospek masuk</p>
             </div>
           </div>
 
@@ -150,6 +160,7 @@ export default function DashboardClient({
                   <th className="py-3 px-4">Model Mobil</th>
                   <th className="py-3 px-4">Kategori</th>
                   <th className="py-3 px-4">Harga OTR Mulai</th>
+                  <th className="py-3 px-4 text-right">Minat / Klik WA</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -168,11 +179,22 @@ export default function DashboardClient({
                     <td className="py-3 px-4 font-bold text-red-600">
                       Rp {Number(car.startingPrice).toLocaleString('id-ID')}
                     </td>
+                    <td className="py-3 px-4 text-right">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          car.leadCount > 0
+                            ? 'bg-red-50 text-red-700 border border-red-200'
+                            : 'bg-gray-50 text-gray-400'
+                        }`}
+                      >
+                        {car.leadCount} interaksi
+                      </span>
+                    </td>
                   </tr>
                 ))}
                 {topCars.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="py-6 text-center text-gray-400">
+                    <td colSpan={5} className="py-6 text-center text-gray-400">
                       Belum ada data unit mobil.
                     </td>
                   </tr>
