@@ -59,11 +59,11 @@ export default async function PromoDetailPage({ params }: Props) {
         <article className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           {/* Cover Image */}
           {blog.coverImage && (
-            <div className="aspect-[21/9] w-full bg-gray-100 overflow-hidden">
+            <div className="w-full bg-gray-100 flex items-center justify-center overflow-hidden">
               <img
                 src={blog.coverImage}
                 alt={blog.title}
-                className="w-full h-full object-cover"
+                className="w-full h-auto max-h-[520px] object-cover"
               />
             </div>
           )}

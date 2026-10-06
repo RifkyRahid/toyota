@@ -89,7 +89,7 @@ export default function Footer({ settings }: FooterProps) {
               <img
                 src={footerLogoUrl}
                 alt={`Logo ${dealershipName}`}
-                className="h-10 w-auto object-contain brightness-0 invert"
+                className="h-16 md:h-20 w-auto object-contain brightness-0 invert self-start mb-2"
               />
             ) : (
               <span className="text-xl font-bold tracking-tight">Agung Toyota</span>

@@ -45,7 +45,8 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
     setUploadingState(field);
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('context', field === 'pricelistPdf' ? 'general' : 'general');
+    const uploadContext = (field === 'headerLogo' || field === 'footerLogo') ? 'logo' : 'general';
+    formData.append('context', uploadContext);
 
     try {
       const res = await fetch('/api/upload', {
@@ -65,7 +66,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
       if (field === 'footerLogo') setFooterLogoUrl(url);
       if (field === 'pricelistPdf') setPricelistPdfUrl(url);
 
-      toast.success('Berkas berhasil diunggah.');
+      toast.success('Berkas berhasil diunggah! Klik "Simpan Perubahan" untuk menerapkan.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error upload berkas';
       toast.error(msg);
@@ -302,8 +303,8 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
               Logo Header Navbar
             </label>
             <div className="flex items-center gap-3">
-              <div className="w-16 h-10 bg-white border border-gray-200 rounded-md flex items-center justify-center p-1 shrink-0">
-                {headerLogoUrl && <img src={headerLogoUrl} alt="Logo" className="max-h-full object-contain" />}
+              <div className="w-28 h-14 bg-white border border-gray-200 rounded-md flex items-center justify-center p-1.5 shrink-0">
+                {headerLogoUrl && <img src={headerLogoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />}
               </div>
               <label className="cursor-pointer px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-md">
                 Pilih Logo
@@ -329,9 +330,9 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
               Logo Footer (Versi Gelap / Monokrom)
             </label>
             <div className="flex items-center gap-3">
-              <div className="w-16 h-10 bg-zinc-900 border border-gray-800 rounded-md flex items-center justify-center p-1 shrink-0">
+              <div className="w-28 h-14 bg-zinc-900 border border-gray-800 rounded-md flex items-center justify-center p-1.5 shrink-0">
                 {footerLogoUrl && (
-                  <img src={footerLogoUrl} alt="Logo" className="max-h-full object-contain brightness-0 invert" />
+                  <img src={footerLogoUrl} alt="Logo" className="max-h-full max-w-full object-contain brightness-0 invert" />
                 )}
               </div>
               <label className="cursor-pointer px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-md">
@@ -424,6 +425,27 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
             />
           </div>
         </div>
+      </div>
+
+      {/* Bottom Save Action */}
+      <div className="flex justify-end pt-2">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="inline-flex items-center gap-2 px-7 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-lg shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+        >
+          {submitting ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              <span>Menyimpan...</span>
+            </>
+          ) : (
+            <>
+              <Check size={16} />
+              <span>Simpan Perubahan</span>
+            </>
+          )}
+        </button>
       </div>
     </form>
   );

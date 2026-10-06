@@ -11,12 +11,14 @@ const WEBP_QUALITY = 80;
 // Batas lebar maksimal sesuai 1_ARCHITECTURE_STACK.md §3.B
 const MAX_WIDTH_BANNER = 1920;
 const MAX_WIDTH_CAR = 1080;
+const MAX_WIDTH_LOGO = 800;
 
-type UploadContext = 'banner' | 'car' | 'general';
+type UploadContext = 'banner' | 'car' | 'general' | 'logo';
 
 function getMaxWidth(context: UploadContext): number {
   if (context === 'banner') return MAX_WIDTH_BANNER;
   if (context === 'car') return MAX_WIDTH_CAR;
+  if (context === 'logo') return MAX_WIDTH_LOGO;
   return MAX_WIDTH_CAR; // default
 }
 
@@ -76,6 +78,12 @@ export async function POST(req: NextRequest) {
 
     // ── 5. Resize + Konversi ke WebP ──────────────────────────
     const maxWidth = getMaxWidth(context);
+
+    // Otomatis trim ruang kosong (padding transparan/putih) jika context adalah logo
+    if (context === 'logo') {
+      sharpInstance = sharpInstance.trim();
+    }
+
     const processedBuffer = await sharpInstance
       .resize({ width: maxWidth, withoutEnlargement: true })
       .webp({ quality: WEBP_QUALITY })

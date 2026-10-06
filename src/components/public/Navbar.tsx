@@ -41,14 +41,14 @@ export default function Navbar({ salesWhatsapp, logoUrl }: NavbarProps) {
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 md:h-20 transition-all duration-300">
           {/* Logo */}
           <Link href="/" className="flex items-center shrink-0" onClick={handleLinkClick}>
             {logoUrl ? (
               <img
                 src={logoUrl}
                 alt="Logo"
-                className="h-9 w-auto object-contain"
+                className="h-11 sm:h-12 md:h-16 w-auto object-contain transition-all"
               />
             ) : (
               <span className="text-xl font-bold text-zinc-900 tracking-tight">
