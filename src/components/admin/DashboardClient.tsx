@@ -1,9 +1,9 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { FileDown } from 'lucide-react';
 import AnalyticsChart from './AnalyticsChart';
-import { generatePerformancePdf } from '@/lib/pdf-report';
-import { toast } from 'sonner';
+import ReportModal from './ReportModal';
 
 interface DashboardClientProps {
   totalLeads: number;
@@ -28,6 +28,26 @@ interface DashboardClientProps {
   }>;
   hourlyData?: number[];
   totalClicks?: number;
+  allLeads?: Array<{
+    id: string;
+    name: string;
+    whatsapp: string;
+    carInterest?: string | null;
+    status: string;
+    createdAt: string;
+  }>;
+  allClicks?: Array<{
+    carName?: string | null;
+    buttonType: string;
+    createdAt: string;
+  }>;
+  allCars?: Array<{
+    id: string;
+    name: string;
+    category: string;
+    startingPrice: string;
+    isPromo: boolean;
+  }>;
 }
 
 export default function DashboardClient({
@@ -39,22 +59,58 @@ export default function DashboardClient({
   recentLeads,
   hourlyData = [],
   totalClicks = 0,
+  allLeads = [],
+  allClicks = [],
+  allCars = [],
 }: DashboardClientProps) {
-  const handleDownloadPdf = () => {
-    try {
-      generatePerformancePdf({
-        totalLeads,
-        newLeads,
-        dealLeads,
-        topCars,
-        recentLeads,
-      });
-      toast.success('Laporan PDF berhasil diunduh.');
-    } catch (err) {
-      console.error(err);
-      toast.error('Gagal membuat laporan PDF.');
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [chartFilter, setChartFilter] = useState<'7d' | '30d' | 'all'>('all');
+
+  const effectiveLeads = allLeads.length > 0 ? allLeads : recentLeads;
+  const effectiveClicks = allClicks;
+  const effectiveCars = allCars.length > 0 ? allCars : topCars.map((c) => ({
+    id: c.id,
+    name: c.name,
+    category: c.category,
+    startingPrice: c.startingPrice,
+    isPromo: c.isPromo,
+  }));
+
+  // Hitung distribusi jam secara dinamis berdasarkan filter yang dipilih di dasbor
+  const { activeHourlyData, activeTotalInteractions, isRealData } = useMemo(() => {
+    if (chartFilter === 'all') {
+      const hasReal = hourlyData.some((c) => c > 0);
+      return {
+        activeHourlyData: hourlyData,
+        activeTotalInteractions: totalClicks + totalLeads,
+        isRealData: hasReal,
+      };
     }
-  };
+
+    const now = new Date();
+    const daysAgo = chartFilter === '7d' ? 7 : 30;
+    const cutoff = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000).getTime();
+
+    const filteredClicks = effectiveClicks.filter((c) => new Date(c.createdAt).getTime() >= cutoff);
+    const filteredLeads = effectiveLeads.filter((l) => new Date(l.createdAt).getTime() >= cutoff);
+
+    const dist = Array(24).fill(0);
+    for (const c of filteredClicks) {
+      dist[new Date(c.createdAt).getHours()] += 1;
+    }
+    for (const l of filteredLeads) {
+      dist[new Date(l.createdAt).getHours()] += 1;
+    }
+
+    const totalInteractions = filteredClicks.length + filteredLeads.length;
+    const hasReal = dist.some((c: number) => c > 0);
+
+    return {
+      activeHourlyData: dist,
+      activeTotalInteractions: totalInteractions,
+      isRealData: hasReal,
+    };
+  }, [chartFilter, hourlyData, totalClicks, totalLeads, effectiveClicks, effectiveLeads]);
 
   return (
     <div className="space-y-8">
@@ -71,11 +127,11 @@ export default function DashboardClient({
 
         <button
           type="button"
-          onClick={handleDownloadPdf}
+          onClick={() => setIsReportModalOpen(true)}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
         >
           <FileDown size={17} />
-          <span>Download Laporan Performa (PDF)</span>
+          <span>Tarik Laporan Kinerja (PDF)</span>
         </button>
       </div>
 
@@ -116,27 +172,65 @@ export default function DashboardClient({
 
       {/* Chart: Peak Hours */}
       <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 pb-4 border-b border-gray-100 gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 pb-4 border-b border-gray-100 gap-3">
           <div>
             <h2 className="text-base font-bold text-gray-900">
               Grafik Jam Sibuk Pengunjung (Peak Hours)
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Distribusi interaksi pengguna per jam (Pukul 00:00 - 23:00) untuk acuan jadwal penayangan iklan / follow-up.
+              Distribusi interaksi calon pembeli per jam (00:00 - 23:00) untuk acuan jadwal penayangan iklan & stand-by sales.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            {/* Filter Tab Rentang Waktu */}
+            <div className="inline-flex items-center p-0.5 bg-gray-100 rounded-lg border border-gray-200">
+              <button
+                type="button"
+                onClick={() => setChartFilter('7d')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+                  chartFilter === '7d'
+                    ? 'bg-white text-gray-900 shadow-2xs'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                7 Hari
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartFilter('30d')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+                  chartFilter === '30d'
+                    ? 'bg-white text-gray-900 shadow-2xs'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                30 Hari
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartFilter('all')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+                  chartFilter === 'all'
+                    ? 'bg-white text-gray-900 shadow-2xs'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Semua
+              </button>
+            </div>
+
             <span className="inline-flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200">
               <span className="w-2 h-2 rounded-full bg-red-600" />
-              Total Klik WA & Interaksi: <strong className="text-gray-900 ml-1">{totalClicks + totalLeads}</strong>
+              Interaksi: <strong className="text-gray-900 ml-1">{activeTotalInteractions}</strong>
             </span>
             <span className="text-[11px] text-gray-400 bg-gray-100 px-2 py-1 rounded border border-gray-200">
-              {hourlyData.some((c) => c > 0) ? 'Data Riil' : 'Data Sampel Baseline'}
+              {isRealData ? 'Data Riil' : 'Data Sampel Baseline'}
             </span>
           </div>
         </div>
 
-        <AnalyticsChart data={hourlyData} />
+        <AnalyticsChart data={activeHourlyData} />
       </div>
 
       {/* 2-Columns: Top 10 Cars + Latest Leads */}
@@ -261,6 +355,15 @@ export default function DashboardClient({
           </div>
         </div>
       </div>
+
+      {/* Modal Dialog Download Laporan Kinerja Digital PDF */}
+      <ReportModal
+        open={isReportModalOpen}
+        onOpenChange={setIsReportModalOpen}
+        allLeads={effectiveLeads}
+        allClicks={effectiveClicks}
+        allCars={effectiveCars}
+      />
     </div>
   );
 }

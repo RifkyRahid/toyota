@@ -5,25 +5,23 @@ import type { Lead } from '@prisma/client';
 export const revalidate = 0; // Dynamic server component
 
 export default async function AdminDashboardPage() {
-  const [totalLeads, newLeads, dealLeads, carModels, recentLeadsRaw, ctaClicksRaw, allLeadsForStats] =
-    await Promise.all([
-      prisma.lead.count(),
-      prisma.lead.count({ where: { status: 'BARU' } }),
-      prisma.lead.count({ where: { status: 'DEAL' } }),
-      prisma.carModel.findMany({
-        where: { isActive: true },
-      }),
-      prisma.lead.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 15,
-      }),
-      prisma.ctaClick.findMany({
-        select: { carName: true, buttonType: true, createdAt: true },
-      }),
-      prisma.lead.findMany({
-        select: { carInterest: true, createdAt: true },
-      }),
-    ]);
+  const [carModels, allLeadsRaw, ctaClicksRaw] = await Promise.all([
+    prisma.carModel.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: 'asc' },
+    }),
+    prisma.lead.findMany({
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.ctaClick.findMany({
+      select: { carName: true, buttonType: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
+
+  const totalLeads = allLeadsRaw.length;
+  const newLeads = allLeadsRaw.filter((l) => l.status === 'BARU').length;
+  const dealLeads = allLeadsRaw.filter((l) => l.status === 'DEAL').length;
 
   // 1. Hitung distribusi aktivitas per jam (00:00 - 23:00) dari CTA Clicks & Leads
   const hourlyData = Array(24).fill(0);
@@ -31,7 +29,7 @@ export default async function AdminDashboardPage() {
     const h = new Date(click.createdAt).getHours();
     hourlyData[h] += 1;
   }
-  for (const lead of allLeadsForStats) {
+  for (const lead of allLeadsRaw) {
     const h = new Date(lead.createdAt).getHours();
     hourlyData[h] += 1;
   }
@@ -48,7 +46,7 @@ export default async function AdminDashboardPage() {
       }
     }
 
-    for (const lead of allLeadsForStats) {
+    for (const lead of allLeadsRaw) {
       if (lead.carInterest && lead.carInterest.toLowerCase().includes(carLower)) {
         score += 1;
       }
@@ -73,7 +71,15 @@ export default async function AdminDashboardPage() {
     leadCount: carScores[car.id] || 0,
   }));
 
-  const recentLeads = recentLeadsRaw.map((lead: Lead) => ({
+  const allCarsSerialized = carModels.map((car) => ({
+    id: car.id,
+    name: car.name,
+    category: car.category as string,
+    startingPrice: car.startingPrice.toString(),
+    isPromo: car.isPromo,
+  }));
+
+  const allLeadsSerialized = allLeadsRaw.map((lead: Lead) => ({
     id: lead.id,
     name: lead.name,
     whatsapp: lead.whatsapp,
@@ -81,6 +87,14 @@ export default async function AdminDashboardPage() {
     status: lead.status,
     createdAt: lead.createdAt.toISOString(),
   }));
+
+  const allClicksSerialized = ctaClicksRaw.map((click) => ({
+    carName: click.carName,
+    buttonType: click.buttonType,
+    createdAt: click.createdAt.toISOString(),
+  }));
+
+  const recentLeads = allLeadsSerialized.slice(0, 15);
 
   return (
     <DashboardClient
@@ -92,6 +106,9 @@ export default async function AdminDashboardPage() {
       recentLeads={recentLeads}
       hourlyData={hourlyData}
       totalClicks={ctaClicksRaw.length}
+      allLeads={allLeadsSerialized}
+      allClicks={allClicksSerialized}
+      allCars={allCarsSerialized}
     />
   );
 }
