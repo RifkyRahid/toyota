@@ -48,6 +48,7 @@ export interface SerializedCarModel {
   slug: string;
   category: CarCategory;
   heroImage: string;
+  bannerImage?: string | null;
   startingPrice: string; // BigInt → string
   isPromo: boolean;
   promoLabel: string | null;

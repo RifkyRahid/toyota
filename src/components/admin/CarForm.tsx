@@ -48,12 +48,14 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [uploadingHero, setUploadingHero] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
 
   // Model fields
   const [name, setName] = useState(initialData?.name || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [category, setCategory] = useState(initialData?.category || 'MPV');
   const [heroImage, setHeroImage] = useState(initialData?.heroImage || '');
+  const [bannerImage, setBannerImage] = useState(initialData?.bannerImage || '');
   const [startingPrice, setStartingPrice] = useState(initialData?.startingPrice || '');
   const [isPromo, setIsPromo] = useState(initialData?.isPromo ?? false);
   const [promoLabel, setPromoLabel] = useState(initialData?.promoLabel || '');
@@ -133,6 +135,37 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
       toast.error(message);
     } finally {
       setUploadingHero(false);
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingBanner(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('context', 'banner');
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Upload banner mobil gagal');
+      }
+
+      const { url } = await res.json();
+      setBannerImage(url);
+      toast.success('Banner hero mobil berhasil diunggah.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Gagal upload banner mobil';
+      toast.error(message);
+    } finally {
+      setUploadingBanner(false);
     }
   };
 
@@ -222,6 +255,7 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
       slug,
       category,
       heroImage,
+      bannerImage: bannerImage || null,
       startingPrice: startingPrice ? Number(startingPrice) : undefined,
       isPromo,
       promoLabel: isPromo ? promoLabel : null,
@@ -373,43 +407,110 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
           </div>
         </div>
 
-        {/* Hero Image Upload */}
-        <div>
-          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-            Foto Utama Mobil (PNG Transparan / WebP) <span className="text-red-600">*</span>
-          </label>
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <div className="w-32 h-20 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden shrink-0">
-              {heroImage ? (
-                <img
-                  src={heroImage}
-                  alt="Preview"
-                  className="w-full h-full object-contain p-1"
+        {/* Image Uploads: Katalog Cutout & Model Hero Banner */}
+        <div className="space-y-6 pt-2">
+          {/* 1. Hero / Katalog Cutout Image */}
+          <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200">
+            <div className="mb-2">
+              <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider">
+                1. Foto Utama Unit Mobil (Studio Cutout / PNG Transparan) <span className="text-red-600">*</span>
+              </label>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Foto mobil potongan studio tanpa background. Digunakan di <strong>Kartu Katalog</strong>, <strong>Daftar Harga</strong>, dan pencarian.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-4 mt-3">
+              <div className="w-36 h-24 bg-white rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+                {heroImage ? (
+                  <img
+                    src={heroImage}
+                    alt="Preview Katalog"
+                    className="w-full h-full object-contain p-2"
+                  />
+                ) : (
+                  <span className="text-xs text-gray-400">Belum ada foto</span>
+                )}
+              </div>
+
+              <div className="flex-1 w-full">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg border border-gray-200 shadow-xs transition-colors">
+                  <Upload size={14} />
+                  <span>{uploadingHero ? 'Mengunggah...' : 'Pilih & Upload Foto Katalog'}</span>
+                  <input
+                    type="file"
+                    onChange={handleHeroUpload}
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={uploadingHero}
+                  />
+                </label>
+                <input
+                  type="text"
+                  value={heroImage}
+                  onChange={(e) => setHeroImage(e.target.value)}
+                  placeholder="/uploads/nama-file.webp"
+                  className="w-full mt-2 px-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs font-mono text-gray-700"
                 />
-              ) : (
-                <span className="text-xs text-gray-400">Belum ada foto</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Banner Hero Landscape */}
+          <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div>
+                <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider">
+                  2. Banner Hero Model Mobil (Landscape Lebar) <span className="text-xs font-normal text-gray-400 lowercase">(opsional)</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Foto suasana/lifestyle mobil rasio lebar (16:9 / 21:9) yang tampil <strong>full-width di bagian atas halaman detail mobil</strong> (seperti referensi situs resmi Toyota Astra).
+                </p>
+              </div>
+              {bannerImage && (
+                <button
+                  type="button"
+                  onClick={() => setBannerImage('')}
+                  className="text-xs text-red-600 hover:text-red-700 font-medium shrink-0"
+                >
+                  Hapus Banner
+                </button>
               )}
             </div>
 
-            <div className="flex-1 w-full">
-              <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition-colors">
-                <Upload size={14} />
-                <span>{uploadingHero ? 'Mengunggah...' : 'Pilih & Upload Foto Utama'}</span>
+            <div className="flex flex-col sm:flex-row items-center gap-4 mt-3">
+              <div className="w-48 h-24 bg-gray-900 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+                {bannerImage ? (
+                  <img
+                    src={bannerImage}
+                    alt="Preview Banner Hero"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-xs text-gray-400 text-center px-2">Belum ada banner (menggunakan foto utama)</span>
+                )}
+              </div>
+
+              <div className="flex-1 w-full">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg border border-gray-200 shadow-xs transition-colors">
+                  <Upload size={14} />
+                  <span>{uploadingBanner ? 'Mengunggah...' : 'Pilih & Upload Banner Mobil'}</span>
+                  <input
+                    type="file"
+                    onChange={handleBannerUpload}
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={uploadingBanner}
+                  />
+                </label>
                 <input
-                  type="file"
-                  onChange={handleHeroUpload}
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  disabled={uploadingHero}
+                  type="text"
+                  value={bannerImage}
+                  onChange={(e) => setBannerImage(e.target.value)}
+                  placeholder="/uploads/nama-banner.webp"
+                  className="w-full mt-2 px-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs font-mono text-gray-700"
                 />
-              </label>
-              <input
-                type="text"
-                value={heroImage}
-                onChange={(e) => setHeroImage(e.target.value)}
-                placeholder="/uploads/nama-file.webp"
-                className="w-full mt-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs font-mono text-gray-700"
-              />
+              </div>
             </div>
           </div>
         </div>

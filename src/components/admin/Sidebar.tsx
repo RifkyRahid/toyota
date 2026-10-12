@@ -10,6 +10,7 @@ import {
   Image as ImageIcon,
   FileText,
   Settings,
+  ShieldCheck,
   LogOut,
   ExternalLink,
 } from 'lucide-react';
@@ -51,6 +52,14 @@ export default function Sidebar({ user }: SidebarProps) {
     }
   };
 
+  const isSuperadmin = user?.role === 'SUPERADMIN';
+  const navItems = [
+    ...NAV_ITEMS,
+    ...(isSuperadmin
+      ? [{ label: 'Kelola Pengguna', href: '/admin/users', icon: ShieldCheck }]
+      : []),
+  ];
+
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col justify-between shrink-0 min-h-screen">
       <div>
@@ -81,7 +90,7 @@ export default function Sidebar({ user }: SidebarProps) {
 
         {/* Navigation items */}
         <nav className="p-4 space-y-1" aria-label="Navigasi Admin">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
               pathname === item.href ||

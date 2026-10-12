@@ -17,20 +17,8 @@ export default async function KatalogPage() {
   ]);
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <section className="bg-white py-10 border-b border-gray-100">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-            Katalog Mobil Toyota Batam
-          </h1>
-          <p className="text-gray-500 mt-2">
-            Temukan unit Toyota impian Anda dengan harga OTR terbaik di Batam
-          </p>
-        </div>
-      </section>
-      <section className="py-12">
-        <CatalogSection cars={cars} salesWhatsapp={settings.salesWhatsapp} />
-      </section>
+    <main className="min-h-screen bg-gray-50 py-8 md:py-12">
+      <CatalogSection cars={cars} salesWhatsapp={settings.salesWhatsapp} />
     </main>
   );
 }

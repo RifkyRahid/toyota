@@ -34,25 +34,27 @@ export default function CarCard({ car, salesWhatsapp }: CarCardProps) {
   const waUrl = `https://wa.me/${waNumber}?text=${waMessage}`;
 
   return (
-    <div className="bg-white shadow-sm rounded-xl overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+    <div className="group bg-white rounded-xl border border-gray-100 shadow-xs hover:shadow-md hover:border-gray-200 transition-all duration-200 flex flex-col overflow-hidden">
       {/* ── Image section ── */}
-      <div className="relative bg-gray-50 w-full aspect-[4/3] flex items-center justify-center">
-        <Image
-          src={car.heroImage}
-          alt={car.name}
-          fill
-          className="object-contain p-4"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        />
+      <div className="relative bg-gradient-to-b from-gray-50/80 to-gray-50/20 w-full h-36 sm:h-40 md:h-44 flex items-center justify-center p-3 overflow-hidden">
+        <div className="relative w-full h-full">
+          <Image
+            src={car.heroImage}
+            alt={car.name}
+            fill
+            className="object-contain transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          />
+        </div>
 
         {/* PROMO badge */}
         {car.isPromo && (
-          <div className="absolute top-3 left-3 flex flex-col items-start gap-1 z-10">
-            <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">
+          <div className="absolute top-2.5 left-2.5 flex flex-col items-start gap-1 z-10">
+            <span className="bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shadow-xs">
               PROMO
             </span>
             {car.promoLabel && (
-              <span className="bg-red-600/90 text-white text-xs font-semibold px-2 py-0.5 rounded">
+              <span className="bg-red-600/90 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded shadow-xs">
                 {car.promoLabel}
               </span>
             )}
@@ -61,21 +63,21 @@ export default function CarCard({ car, salesWhatsapp }: CarCardProps) {
       </div>
 
       {/* ── Info section ── */}
-      <div className="flex flex-col flex-1 p-4 gap-2">
+      <div className="flex flex-col flex-1 p-3.5 sm:p-4 gap-1.5">
         {/* Category pill */}
-        <span className="text-xs text-gray-500 uppercase tracking-wider font-medium">
+        <span className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">
           {car.category.replace('_', ' ')}
         </span>
 
         {/* Car name */}
-        <h3 className="text-gray-900 font-bold text-lg leading-snug line-clamp-2">
+        <h3 className="text-gray-900 font-bold text-base md:text-lg leading-snug line-clamp-1 group-hover:text-red-600 transition-colors">
           {car.name}
         </h3>
 
         {/* Price */}
-        <div className="mt-1">
-          <p className="text-gray-500 text-xs">Harga OTR Mulai</p>
-          <p className="text-red-600 font-bold text-lg leading-tight">
+        <div className="mt-0.5">
+          <p className="text-gray-400 text-[11px]">Harga OTR Mulai</p>
+          <p className="text-red-600 font-bold text-base sm:text-lg leading-tight">
             {formatRupiah(car.startingPrice)}
           </p>
         </div>
@@ -84,7 +86,7 @@ export default function CarCard({ car, salesWhatsapp }: CarCardProps) {
         <div className="mt-auto pt-3 flex gap-2">
           <Link
             href={`/mobil/${car.slug}`}
-            className="flex-1 text-center border border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+            className="flex-1 text-center border border-gray-200 text-gray-700 hover:border-red-600 hover:text-red-600 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors"
           >
             Lihat Detail
           </Link>
@@ -93,7 +95,7 @@ export default function CarCard({ car, salesWhatsapp }: CarCardProps) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackClickToWa({ source_button: 'KATALOG_CARD', car_name: car.name })}
-            className="flex-1 text-center bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+            className="flex-1 text-center bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors shadow-xs"
           >
             Tanya WA
           </a>

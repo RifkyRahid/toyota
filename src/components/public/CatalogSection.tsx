@@ -49,26 +49,26 @@ export default function CatalogSection({ cars, salesWhatsapp }: CatalogSectionPr
   }, [cars]);
 
   return (
-    <div className="container mx-auto px-4">
+    <div className="max-w-6xl mx-auto px-4">
       {/* Section header */}
-      <div className="text-center mb-10">
-        <h2 className="text-gray-900 text-2xl md:text-3xl font-bold">
+      <div className="text-center mb-6 sm:mb-8">
+        <h2 className="text-gray-900 text-xl sm:text-2xl md:text-3xl font-bold">
           Katalog Unit Toyota Batam
         </h2>
-        <p className="text-gray-500 mt-2 text-base">
+        <p className="text-gray-500 mt-1 text-xs sm:text-sm">
           Pilih unit Toyota sesuai kebutuhan dan gaya hidup Anda
         </p>
       </div>
 
       {/* Filter tabs */}
-      <div className="flex flex-wrap gap-2 justify-center mb-8">
+      <div className="flex flex-wrap gap-2 justify-center mb-6">
         {availableTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveCategory(tab)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 ${
               activeCategory === tab
-                ? 'bg-red-600 text-white shadow-sm'
+                ? 'bg-red-600 text-white shadow-xs'
                 : 'bg-white text-gray-700 border border-gray-200 hover:border-red-400 hover:text-red-600'
             }`}
           >
@@ -79,14 +79,14 @@ export default function CatalogSection({ cars, salesWhatsapp }: CatalogSectionPr
 
       {/* Car grid */}
       {filteredCars.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
           {filteredCars.map((car) => (
             <CarCard key={car.id} car={car} salesWhatsapp={salesWhatsapp} />
           ))}
         </div>
       ) : (
-        <div className="text-center py-16 text-gray-500">
-          <p className="text-lg">Tidak ada unit tersedia untuk kategori ini.</p>
+        <div className="text-center py-12 text-gray-500">
+          <p className="text-base">Tidak ada unit tersedia untuk kategori ini.</p>
         </div>
       )}
     </div>

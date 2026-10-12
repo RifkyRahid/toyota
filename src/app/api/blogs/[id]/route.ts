@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import DOMPurify from 'isomorphic-dompurify';
 import { prisma } from '@/lib/prisma';
+import { deleteUploadedFile } from '@/lib/file-cleanup';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -33,6 +34,11 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     const body = await req.json();
     const { title, slug, excerpt, content, coverImage, isPublished } = body;
 
+    const existing = await prisma.blog.findUnique({ where: { id } });
+    if (existing && coverImage && coverImage !== existing.coverImage) {
+      await deleteUploadedFile(existing.coverImage);
+    }
+
     const dataToUpdate: Record<string, unknown> = {};
     if (title !== undefined) dataToUpdate.title = title;
     if (slug !== undefined) dataToUpdate.slug = slug;
@@ -62,7 +68,13 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 export async function DELETE(req: NextRequest, { params }: RouteContext) {
   try {
     const { id } = await params;
+    const existing = await prisma.blog.findUnique({ where: { id } });
+
     await prisma.blog.delete({ where: { id } });
+
+    if (existing?.coverImage) {
+      await deleteUploadedFile(existing.coverImage);
+    }
 
     revalidatePath('/promo');
     revalidatePath('/');

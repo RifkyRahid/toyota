@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `Toyota ${car.name} — Harga OTR Batam ${new Date().getFullYear()} | Agung Toyota Batam`,
     description: `Harga OTR Toyota ${car.name} di Batam mulai ${formatRupiah(car.startingPrice)}. Tersedia ${car.variants.length} pilihan varian. Hubungi sales kami untuk penawaran terbaik.`,
     openGraph: {
-      images: [{ url: car.heroImage }],
+      images: [{ url: car.bannerImage || car.heroImage }],
     },
   };
 }
@@ -75,39 +75,56 @@ export default async function CarDetailPage({ params }: Props) {
 
   return (
     <main className="bg-white min-h-screen pb-24 md:pb-0">
-      {/* ── Header Produk ─────────────────────────────────────── */}
-      <section className="bg-gray-50 py-10">
-        <div className="container mx-auto px-4">
-          <span className="text-sm text-gray-500 uppercase tracking-wide">
-            {car.category.replace(/_/g, ' ')}
-          </span>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mt-1">
-            Toyota {car.name}
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Harga OTR Batam Mulai{' '}
-            <span className="text-red-600 font-bold">
-              {formatRupiah(car.startingPrice)}
-            </span>
-          </p>
-          {car.isPromo && car.promoLabel && (
-            <span className="inline-block mt-2 bg-red-600 text-white text-sm px-3 py-1 rounded">
-              {car.promoLabel}
-            </span>
-          )}
-        </div>
-      </section>
-
-      {/* ── Gambar Hero Utama ──────────────────────────────────── */}
-      <section className="py-8">
-        <div className="container mx-auto px-4">
-          <div className="bg-gray-50 rounded-2xl flex items-center justify-center h-72 md:h-96 overflow-hidden">
+      {/* ── Banner Hero Widescreen (Full-Width Maksimal Layar seperti Toyota Astra) ── */}
+      {car.bannerImage ? (
+        <section className="relative w-full bg-zinc-950 overflow-hidden">
+          <div className="w-full relative aspect-[16/9] sm:aspect-[21/9] md:h-[520px] lg:h-[620px] max-h-[720px]">
             <img
-              src={car.heroImage}
-              alt={`Toyota ${car.name}`}
-              className="max-h-full max-w-full object-contain p-4 md:p-8"
+              src={car.bannerImage}
+              alt={`Banner Toyota ${car.name}`}
+              className="w-full h-full object-cover object-center"
             />
           </div>
+        </section>
+      ) : (
+        /* Fallback: Jika model belum memiliki banner khusus, tampilkan foto studio */
+        <section className="py-10 bg-gray-50 border-b border-gray-100">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-center h-64 md:h-80 overflow-hidden">
+              <img
+                src={car.heroImage}
+                alt={`Toyota ${car.name}`}
+                className="max-h-full max-w-full object-contain p-4"
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Header Informasi Produk ────────────────────────────── */}
+      <section className="bg-white py-8 border-b border-gray-100">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <span className="text-xs md:text-sm font-bold text-red-600 uppercase tracking-wider">
+              {car.category.replace(/_/g, ' ')}
+            </span>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mt-1">
+              Toyota {car.name}
+            </h1>
+            <p className="text-gray-500 mt-2 text-base md:text-lg">
+              Harga OTR Batam Mulai{' '}
+              <span className="text-red-600 font-extrabold">
+                {formatRupiah(car.startingPrice)}
+              </span>
+            </p>
+          </div>
+          {car.isPromo && car.promoLabel && (
+            <div className="shrink-0">
+              <span className="inline-block bg-red-600 text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-xs">
+                {car.promoLabel}
+              </span>
+            </div>
+          )}
         </div>
       </section>
 

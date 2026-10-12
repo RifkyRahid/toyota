@@ -59,6 +59,7 @@ model CarModel {
   slug           String      @unique // Contoh: "innova-zenix-batam" (SEO-friendly)
   category       CarCategory @default(MPV)
   heroImage      String      // Path gambar transparan utama (/uploads/...)
+  bannerImage    String?     // Path banner landscape lebar halaman model mobil (/uploads/...)
   startingPrice  BigInt      // Cache harga terendah untuk query sorting/filter cepat
   isPromo        Boolean     @default(false) // Toggle badge "PROMO BULAN INI"
   promoLabel     String?     // Contoh: "DP Ringan 15 Juta" atau "Bunga 0%"

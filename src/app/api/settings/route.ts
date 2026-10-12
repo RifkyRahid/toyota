@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
+import { deleteUploadedFile } from '@/lib/file-cleanup';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,6 +92,16 @@ export async function PUT(req: NextRequest) {
         { error: 'Tidak ada field yang dikirim untuk diperbarui.' },
         { status: 400 }
       );
+    }
+
+    // Bersihkan file lama jika ada file media yang diganti
+    const existing = await prisma.siteSetting.findUnique({ where: { id: 1 } });
+    if (existing) {
+      if (salesPhotoUrl && salesPhotoUrl !== existing.salesPhotoUrl) await deleteUploadedFile(existing.salesPhotoUrl);
+      if (headerLogoUrl && headerLogoUrl !== existing.headerLogoUrl) await deleteUploadedFile(existing.headerLogoUrl);
+      if (footerLogoUrl && footerLogoUrl !== existing.footerLogoUrl) await deleteUploadedFile(existing.footerLogoUrl);
+      if (faviconUrl && faviconUrl !== existing.faviconUrl) await deleteUploadedFile(existing.faviconUrl);
+      if (pricelistPdfUrl && pricelistPdfUrl !== existing.pricelistPdfUrl) await deleteUploadedFile(existing.pricelistPdfUrl);
     }
 
     // Upsert: update jika ada, create jika belum ada (id selalu 1)

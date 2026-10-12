@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
+import { deleteUploadedFile } from '@/lib/file-cleanup';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -10,6 +11,11 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
   try {
     const { id } = await params;
     const body = await req.json();
+
+    const existing = await prisma.banner.findUnique({ where: { id } });
+    if (existing && body.imageUrl && body.imageUrl !== existing.imageUrl) {
+      await deleteUploadedFile(existing.imageUrl);
+    }
 
     const banner = await prisma.banner.update({
       where: { id },
@@ -27,7 +33,13 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 export async function DELETE(req: NextRequest, { params }: RouteContext) {
   try {
     const { id } = await params;
+    const existing = await prisma.banner.findUnique({ where: { id } });
+
     await prisma.banner.delete({ where: { id } });
+
+    if (existing?.imageUrl) {
+      await deleteUploadedFile(existing.imageUrl);
+    }
 
     revalidatePath('/');
     return NextResponse.json({ message: 'Banner berhasil dihapus.' });

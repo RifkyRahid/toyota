@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/serialize';
+import { deleteUploadedFile, deleteUploadedFiles } from '@/lib/file-cleanup';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -53,6 +54,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       slug,
       category,
       heroImage,
+      bannerImage,
       startingPrice,
       isPromo,
       promoLabel,
@@ -69,6 +71,17 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
         { error: 'Mobil tidak ditemukan.' },
         { status: 404 }
       );
+    }
+
+    // ── Bersihkan file lama jika ada file yang diganti ─────
+    if (heroImage && heroImage !== existing.heroImage) {
+      await deleteUploadedFile(existing.heroImage);
+    }
+    if (bannerImage !== undefined && bannerImage !== existing.bannerImage && existing.bannerImage) {
+      await deleteUploadedFile(existing.bannerImage);
+    }
+    if (brochurePdfUrl !== undefined && brochurePdfUrl !== existing.brochurePdfUrl && existing.brochurePdfUrl) {
+      await deleteUploadedFile(existing.brochurePdfUrl);
     }
 
     // ── Cek slug unik jika diubah ─────────────────────────
@@ -139,6 +152,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
           ...(slug && { slug }),
           ...(category && { category }),
           ...(heroImage && { heroImage }),
+          ...(bannerImage !== undefined && { bannerImage: bannerImage || null }),
           ...(finalStartingPrice !== undefined && {
             startingPrice: finalStartingPrice,
           }),
@@ -175,7 +189,9 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
 
     const existing = await prisma.carModel.findUnique({
       where: { id },
-      select: { slug: true },
+      include: {
+        variants: { select: { image: true } },
+      },
     });
 
     if (!existing) {
@@ -186,6 +202,18 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
     }
 
     await prisma.carModel.delete({ where: { id } });
+
+    // ── Bersihkan semua file aset mobil di server (auto-delete) ──
+    await deleteUploadedFile(existing.heroImage);
+    if (existing.bannerImage) {
+      await deleteUploadedFile(existing.bannerImage);
+    }
+    if (existing.brochurePdfUrl) {
+      await deleteUploadedFile(existing.brochurePdfUrl);
+    }
+    if (existing.variants && existing.variants.length > 0) {
+      await deleteUploadedFiles(existing.variants.map((v) => v.image));
+    }
 
     // ── Revalidasi cache ───────────────────────────────────
     revalidatePath('/');

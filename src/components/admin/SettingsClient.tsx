@@ -2,17 +2,25 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, Check, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Upload, Check, Loader2, Image as ImageIcon, KeyRound, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import type { SiteSetting } from '@/types';
 
 interface SettingsClientProps {
   initialSettings: SiteSetting;
+  initialAdminEmail?: string;
 }
 
-export default function SettingsClient({ initialSettings }: SettingsClientProps) {
+export default function SettingsClient({ initialSettings, initialAdminEmail = '' }: SettingsClientProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+
+  // Security / Admin Account state
+  const [adminEmail, setAdminEmail] = useState(initialAdminEmail);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [updatingAccount, setUpdatingAccount] = useState(false);
 
   // Form states
   const [dealershipName, setDealershipName] = useState(initialSettings.dealershipName);
@@ -115,10 +123,60 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
     }
   };
 
+  const handleAccountUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword) {
+      toast.error('Masukkan password saat ini untuk verifikasi keamanan.');
+      return;
+    }
+    if (newPassword && newPassword.length < 8) {
+      toast.error('Password baru minimal harus 8 karakter.');
+      return;
+    }
+    if (newPassword && newPassword !== confirmPassword) {
+      toast.error('Konfirmasi password baru tidak cocok.');
+      return;
+    }
+    if (!newPassword && adminEmail.toLowerCase().trim() === initialAdminEmail.toLowerCase().trim()) {
+      toast.info('Tidak ada perubahan email atau password.');
+      return;
+    }
+
+    setUpdatingAccount(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword: newPassword || undefined,
+          newEmail: adminEmail,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal memperbarui akun.');
+      }
+
+      toast.success(data.message || 'Akun dan password berhasil diperbarui!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      router.refresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan sistem.';
+      toast.error(msg);
+    } finally {
+      setUpdatingAccount(false);
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl pb-16">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-8 max-w-4xl pb-16">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
             Pengaturan Diler & Profil Sales
@@ -442,11 +500,124 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
           ) : (
             <>
               <Check size={16} />
-              <span>Simpan Perubahan</span>
+              <span>Simpan Pengaturan Diler & Profil</span>
             </>
           )}
         </button>
       </div>
     </form>
-  );
+
+    {/* 4. Keamanan Akun & Kredensial Administrator */}
+    <form onSubmit={handleAccountUpdate} className="bg-white rounded-xl border border-gray-200 p-6 shadow-2xs space-y-5">
+      <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <KeyRound className="text-red-600" size={19} />
+          <h2 className="text-base font-bold text-gray-900">
+            4. Keamanan Akun & Kredensial Administrator
+          </h2>
+        </div>
+        <span className="text-[11px] text-gray-500 bg-gray-50 px-2.5 py-1 rounded border border-gray-200">
+          Autentikasi Panel Admin
+        </span>
+      </div>
+
+      <p className="text-xs text-gray-500">
+        Perbarui email login atau ganti password admin Anda secara mandiri di sini. Demi keamanan, password saat ini wajib diisi sebelum perubahan dapat disimpan.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Email Admin */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+            Email Administrator <span className="text-red-600">*</span>
+          </label>
+          <div className="relative">
+            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="email"
+              required
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+              placeholder="nama@email.com"
+              className="w-full pl-10 pr-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-600"
+            />
+          </div>
+        </div>
+
+        {/* Password Saat Ini */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+            Password Saat Ini <span className="text-red-600">*</span>
+          </label>
+          <div className="relative">
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="password"
+              required
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Masukkan password lama"
+              className="w-full pl-10 pr-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-600"
+            />
+          </div>
+        </div>
+
+        {/* Password Baru */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+            Password Baru (Minimal 8 Karakter)
+          </label>
+          <div className="relative">
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Kosongkan jika tidak ingin mengubah password"
+              className="w-full pl-10 pr-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-600"
+            />
+          </div>
+        </div>
+
+        {/* Konfirmasi Password Baru */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+            Konfirmasi Password Baru
+          </label>
+          <div className="relative">
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Ulangi password baru"
+              disabled={!newPassword}
+              className="w-full pl-10 pr-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-600 disabled:opacity-50"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <button
+          type="submit"
+          disabled={updatingAccount}
+          className="inline-flex items-center gap-2 px-6 py-2.5 bg-zinc-900 hover:bg-black text-white font-semibold text-xs rounded-lg shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+        >
+          {updatingAccount ? (
+            <>
+              <Loader2 size={15} className="animate-spin" />
+              <span>Memperbarui Akun...</span>
+            </>
+          ) : (
+            <>
+              <ShieldCheck size={15} />
+              <span>Update Akun & Password</span>
+            </>
+          )}
+        </button>
+      </div>
+    </form>
+  </div>
+);
 }

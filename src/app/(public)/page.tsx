@@ -107,17 +107,17 @@ export default async function HomePage() {
 
       {/* ── 2. Section Promo ───────────────────────────── */}
       {promoCars.length > 0 && (
-        <section id="promo" className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-10">
-              <h2 className="text-gray-900 text-2xl md:text-3xl font-bold">
+        <section id="promo" className="py-10 md:py-14 bg-white">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-gray-900 text-xl sm:text-2xl md:text-3xl font-bold">
                 Promo Bulan Ini
               </h2>
-              <p className="text-gray-500 mt-2">
+              <p className="text-gray-500 mt-1 text-xs sm:text-sm">
                 Penawaran terbaik Toyota untuk Anda di Batam
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">
               {promoCars.map((car) => (
                 <CarCard key={car.id} car={car} salesWhatsapp={salesWhatsapp} />
               ))}
@@ -127,7 +127,7 @@ export default async function HomePage() {
       )}
 
       {/* ── 3. Section Katalog dengan Tab Filter ───────── */}
-      <section id="katalog" className="py-16 bg-gray-50">
+      <section id="katalog" className="py-10 md:py-14 bg-gray-50">
         <CatalogSection cars={allCars} salesWhatsapp={salesWhatsapp} />
       </section>
 
