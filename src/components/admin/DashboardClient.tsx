@@ -2,8 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { FileDown } from 'lucide-react';
-import AnalyticsChart from './AnalyticsChart';
+import AnalyticsChart, { type HourlyMeta } from './AnalyticsChart';
 import ReportModal from './ReportModal';
+
+type ChartFilterType = 'today' | '7d' | '30d' | 'all';
 
 interface DashboardClientProps {
   totalLeads: number;
@@ -64,7 +66,7 @@ export default function DashboardClient({
   allCars = [],
 }: DashboardClientProps) {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [chartFilter, setChartFilter] = useState<'7d' | '30d' | 'all'>('all');
+  const [chartFilter, setChartFilter] = useState<ChartFilterType>('all');
 
   const effectiveLeads = allLeads.length > 0 ? allLeads : recentLeads;
   const effectiveClicks = allClicks;
@@ -76,30 +78,99 @@ export default function DashboardClient({
     isPromo: c.isPromo,
   }));
 
-  // Hitung distribusi jam secara dinamis berdasarkan filter yang dipilih di dasbor
-  const { activeHourlyData, activeTotalInteractions, isRealData } = useMemo(() => {
-    if (chartFilter === 'all') {
-      const hasReal = hourlyData.some((c) => c > 0);
-      return {
-        activeHourlyData: hourlyData,
-        activeTotalInteractions: totalClicks + totalLeads,
-        isRealData: hasReal,
-      };
+  // Hitung distribusi jam dan metadata detail secara dinamis berdasarkan filter yang dipilih
+  const { activeHourlyData, activeHourlyMeta, activeTotalInteractions, isRealData } = useMemo(() => {
+    const now = new Date();
+    const todayDateLabel = now.toLocaleDateString('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+
+    let cutoff = 0;
+    let periodLabel = 'Semua Waktu';
+
+    if (chartFilter === 'today') {
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      cutoff = startOfToday.getTime();
+      periodLabel = `Hari Ini (${now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })})`;
+    } else if (chartFilter === '7d') {
+      cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).getTime();
+      const startStr = new Date(cutoff).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+      const endStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+      periodLabel = `7 Hari Terakhir (${startStr} - ${endStr})`;
+    } else if (chartFilter === '30d') {
+      cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).getTime();
+      const startStr = new Date(cutoff).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+      const endStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+      periodLabel = `30 Hari Terakhir (${startStr} - ${endStr})`;
     }
 
-    const now = new Date();
-    const daysAgo = chartFilter === '7d' ? 7 : 30;
-    const cutoff = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000).getTime();
-
-    const filteredClicks = effectiveClicks.filter((c) => new Date(c.createdAt).getTime() >= cutoff);
-    const filteredLeads = effectiveLeads.filter((l) => new Date(l.createdAt).getTime() >= cutoff);
+    const filteredClicks = cutoff === 0 
+      ? effectiveClicks 
+      : effectiveClicks.filter((c) => new Date(c.createdAt).getTime() >= cutoff);
+    const filteredLeads = cutoff === 0 
+      ? effectiveLeads 
+      : effectiveLeads.filter((l) => new Date(l.createdAt).getTime() >= cutoff);
 
     const dist = Array(24).fill(0);
-    for (const c of filteredClicks) {
-      dist[new Date(c.createdAt).getHours()] += 1;
-    }
-    for (const l of filteredLeads) {
-      dist[new Date(l.createdAt).getHours()] += 1;
+    const metaArray: HourlyMeta[] = [];
+
+    for (let h = 0; h < 24; h++) {
+      const hourClicks = filteredClicks.filter((c) => new Date(c.createdAt).getHours() === h);
+      const hourLeads = filteredLeads.filter((l) => new Date(l.createdAt).getHours() === h);
+      const totalInHour = hourClicks.length + hourLeads.length;
+      dist[h] = totalInHour;
+
+      // Grouping tanggal unik kejadian pada jam ini
+      const dateMap = new Map<string, { dateStr: string; dayName: string; count: number; timestamp: number }>();
+      for (const item of [...hourClicks, ...hourLeads]) {
+        const d = new Date(item.createdAt);
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        const existing = dateMap.get(key);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          dateMap.set(key, {
+            dateStr: d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+            dayName: d.toLocaleDateString('id-ID', { weekday: 'long' }),
+            count: 1,
+            timestamp: d.getTime(),
+          });
+        }
+      }
+      const dateBreakdown = Array.from(dateMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+
+      // Grouping mobil yang diminati pada jam ini
+      const carMap = new Map<string, number>();
+      for (const c of hourClicks) {
+        if (c.carName) {
+          const name = c.carName.trim();
+          carMap.set(name, (carMap.get(name) || 0) + 1);
+        }
+      }
+      for (const l of hourLeads) {
+        if (l.carInterest) {
+          const name = l.carInterest.trim();
+          carMap.set(name, (carMap.get(name) || 0) + 1);
+        }
+      }
+      const topCarsInHour = Array.from(carMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([name, count]) => `${name} (${count})`);
+
+      metaArray.push({
+        hour: h,
+        count: totalInHour,
+        dateLabel: todayDateLabel,
+        periodLabel,
+        clicksCount: hourClicks.length,
+        leadsCount: hourLeads.length,
+        topCars: topCarsInHour,
+        dateBreakdown,
+      });
     }
 
     const totalInteractions = filteredClicks.length + filteredLeads.length;
@@ -107,10 +178,11 @@ export default function DashboardClient({
 
     return {
       activeHourlyData: dist,
+      activeHourlyMeta: metaArray,
       activeTotalInteractions: totalInteractions,
       isRealData: hasReal,
     };
-  }, [chartFilter, hourlyData, totalClicks, totalLeads, effectiveClicks, effectiveLeads]);
+  }, [chartFilter, effectiveClicks, effectiveLeads]);
 
   return (
     <div className="space-y-8">
@@ -187,6 +259,17 @@ export default function DashboardClient({
             <div className="inline-flex items-center p-0.5 bg-gray-100 rounded-lg border border-gray-200">
               <button
                 type="button"
+                onClick={() => setChartFilter('today')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+                  chartFilter === 'today'
+                    ? 'bg-white text-gray-900 shadow-2xs'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Hari Ini
+              </button>
+              <button
+                type="button"
                 onClick={() => setChartFilter('7d')}
                 className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
                   chartFilter === '7d'
@@ -230,7 +313,11 @@ export default function DashboardClient({
           </div>
         </div>
 
-        <AnalyticsChart data={activeHourlyData} />
+        <AnalyticsChart
+          data={activeHourlyData}
+          hourlyMeta={activeHourlyMeta}
+          filterType={chartFilter}
+        />
       </div>
 
       {/* 2-Columns: Top 10 Cars + Latest Leads */}
