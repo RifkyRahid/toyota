@@ -81,33 +81,46 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
           style={{ opacity: index === currentSlide ? 1 : 0, zIndex: index === currentSlide ? 1 : 0 }}
           aria-hidden={index !== currentSlide}
         >
-          {/* Background image */}
-          <Image
-            src={banner.imageUrl}
-            alt={banner.title}
-            fill
-            priority={index === 0}
-            className="object-cover"
-            sizes="100vw"
-          />
-          {/* Dark gradient overlay — bottom-to-top for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
+          {/* Background image & full-slide clickable link */}
+          <Link
+            href={banner.ctaUrl}
+            className="block absolute inset-0 cursor-pointer group"
+            tabIndex={index === currentSlide ? 0 : -1}
+          >
+            <Image
+              src={banner.imageUrl}
+              alt={banner.title}
+              fill
+              priority={index === 0}
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+              sizes="100vw"
+            />
+            {/* Dark gradient overlay — bottom-to-top for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent group-hover:from-black/85 transition-colors" />
+          </Link>
 
           {/* Text content overlay */}
-          <div className="absolute inset-0 flex items-end z-10">
+          <div className="absolute inset-0 flex items-end z-10 pointer-events-none">
             <div className="container mx-auto px-4 pb-16 md:pb-20">
-              <h2 className="text-white text-3xl md:text-5xl font-bold max-w-2xl leading-tight drop-shadow-md">
-                {banner.title}
-              </h2>
+              <Link
+                href={banner.ctaUrl}
+                className="pointer-events-auto inline-block group"
+                tabIndex={index === currentSlide ? 0 : -1}
+              >
+                <h2 className="text-white text-3xl md:text-5xl font-bold max-w-2xl leading-tight drop-shadow-md group-hover:text-red-400 transition-colors">
+                  {banner.title}
+                </h2>
+              </Link>
               {banner.subtitle && (
                 <p className="text-gray-200 text-base md:text-xl mt-3 max-w-xl drop-shadow">
                   {banner.subtitle}
                 </p>
               )}
-              <div className="mt-6">
+              <div className="mt-6 pointer-events-auto">
                 <Link
                   href={banner.ctaUrl}
                   className="inline-block bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg"
+                  tabIndex={index === currentSlide ? 0 : -1}
                 >
                   {banner.ctaText}
                 </Link>

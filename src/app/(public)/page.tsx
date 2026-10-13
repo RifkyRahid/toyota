@@ -17,6 +17,7 @@ import CatalogSection from '@/components/public/CatalogSection';
 import SalesSection from '@/components/public/SalesSection';
 import BlogSection from '@/components/public/BlogSection';
 import type { SerializedCarModel, SiteSetting } from '@/types';
+import { formatRupiah } from '@/lib/format';
 
 // ── Fetch helpers ─────────────────────────────────────────────
 
@@ -98,12 +99,33 @@ export default async function HomePage() {
     .filter((car) => car.isPromo)
     .slice(0, 3);
 
+  // Otomatis buat banner dari mobil aktif yang memiliki bannerImage
+  const carBanners: Banner[] = allCars
+    .filter((car) => Boolean(car.bannerImage && car.bannerImage.trim() !== ''))
+    .map((car) => {
+      const subtitle = car.promoLabel
+        ? `${car.promoLabel} • OTR Batam Mulai ${formatRupiah(car.startingPrice)}`
+        : `Harga OTR Batam Mulai ${formatRupiah(car.startingPrice)}`;
+
+      return {
+        id: `car-banner-${car.id}`,
+        title: car.name,
+        subtitle,
+        ctaText: 'Lihat Detail Unit',
+        ctaUrl: `/mobil/${car.slug}`,
+        imageUrl: car.bannerImage as string,
+      };
+    });
+
+  // Gabungkan: Banner promo/event umum di awal, disusul oleh banner mobil dari katalog
+  const combinedBanners: Banner[] = [...banners, ...carBanners];
+
   const salesWhatsapp = settings.salesWhatsapp ?? '';
 
   return (
     <main>
-      {/* ── 1. Hero Slider ─────────────────────────────── */}
-      <HeroSlider banners={banners} />
+      {/* ── 1. Hero Slider (Event Banners + Mobil Banners) ── */}
+      <HeroSlider banners={combinedBanners} />
 
       {/* ── 2. Section Promo ───────────────────────────── */}
       {promoCars.length > 0 && (

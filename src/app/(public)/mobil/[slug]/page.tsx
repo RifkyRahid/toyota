@@ -75,22 +75,20 @@ export default async function CarDetailPage({ params }: Props) {
 
   return (
     <main className="bg-white min-h-screen pb-24 md:pb-0">
-      {/* ── Banner Hero Widescreen (Full-Width Maksimal Layar seperti Toyota Astra) ── */}
+      {/* ── Banner Hero Widescreen (Fit di Layar Mobile, Megah di Layar Desktop) ── */}
       {car.bannerImage ? (
-        <section className="relative w-full bg-zinc-950 overflow-hidden">
-          <div className="w-full relative aspect-[16/9] sm:aspect-[21/9] md:h-[520px] lg:h-[620px] max-h-[720px]">
-            <img
-              src={car.bannerImage}
-              alt={`Banner Toyota ${car.name}`}
-              className="w-full h-full object-cover object-center"
-            />
-          </div>
+        <section className="relative w-full bg-zinc-950 overflow-hidden flex items-center justify-center">
+          <img
+            src={car.bannerImage}
+            alt={`Banner Toyota ${car.name}`}
+            className="w-full h-auto max-h-[550px] object-contain block mx-auto"
+          />
         </section>
       ) : (
         /* Fallback: Jika model belum memiliki banner khusus, tampilkan foto studio */
-        <section className="py-10 bg-gray-50 border-b border-gray-100">
+        <section className="py-8 md:py-10 bg-gray-50 border-b border-gray-100">
           <div className="container mx-auto px-4">
-            <div className="flex items-center justify-center h-64 md:h-80 overflow-hidden">
+            <div className="flex items-center justify-center h-52 sm:h-64 md:h-80 overflow-hidden">
               <img
                 src={car.heroImage}
                 alt={`Toyota ${car.name}`}
@@ -102,16 +100,16 @@ export default async function CarDetailPage({ params }: Props) {
       )}
 
       {/* ── Header Informasi Produk ────────────────────────────── */}
-      <section className="bg-white py-8 border-b border-gray-100">
+      <section className="bg-white py-6 md:py-8 border-b border-gray-100">
         <div className="container mx-auto px-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <span className="text-xs md:text-sm font-bold text-red-600 uppercase tracking-wider">
               {car.category.replace(/_/g, ' ')}
             </span>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mt-1">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mt-1">
               Toyota {car.name}
             </h1>
-            <p className="text-gray-500 mt-2 text-base md:text-lg">
+            <p className="text-gray-500 mt-1.5 text-sm sm:text-base md:text-lg">
               Harga OTR Batam Mulai{' '}
               <span className="text-red-600 font-extrabold">
                 {formatRupiah(car.startingPrice)}
@@ -119,8 +117,8 @@ export default async function CarDetailPage({ params }: Props) {
             </p>
           </div>
           {car.isPromo && car.promoLabel && (
-            <div className="shrink-0">
-              <span className="inline-block bg-red-600 text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-xs">
+            <div className="shrink-0 self-start md:self-auto">
+              <span className="inline-block bg-red-600 text-white text-xs sm:text-sm font-bold px-3 py-1 sm:px-4 sm:py-1.5 rounded-full shadow-xs">
                 {car.promoLabel}
               </span>
             </div>
