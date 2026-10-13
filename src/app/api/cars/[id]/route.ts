@@ -168,6 +168,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 
     // ── Revalidasi cache halaman publik ────────────────────
     revalidatePath('/');
+    revalidatePath('/katalog');
     revalidatePath('/daftar-harga');
     revalidatePath(`/mobil/${updatedCar.slug}`);
 
@@ -217,6 +218,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
 
     // ── Revalidasi cache ───────────────────────────────────
     revalidatePath('/');
+    revalidatePath('/katalog');
     revalidatePath('/daftar-harga');
     revalidatePath(`/mobil/${existing.slug}`);
 

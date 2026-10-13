@@ -84,7 +84,7 @@ export default function UsersClient({ initialUsers, currentUserId }: UsersClient
         }),
       });
 
-      let data: any = {};
+      let data: (UserItem & { error?: string }) = {} as UserItem;
       try {
         data = await res.json();
       } catch {
@@ -132,7 +132,7 @@ export default function UsersClient({ initialUsers, currentUserId }: UsersClient
         }),
       });
 
-      let data: any = {};
+      let data: { error?: string } = {};
       try {
         data = await res.json();
       } catch {
@@ -172,7 +172,7 @@ export default function UsersClient({ initialUsers, currentUserId }: UsersClient
         method: 'DELETE',
       });
 
-      let data: any = {};
+      let data: { error?: string } = {};
       try {
         data = await res.json();
       } catch {

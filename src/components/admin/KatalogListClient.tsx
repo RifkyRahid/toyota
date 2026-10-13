@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit3, Trash2, Tag, Car } from 'lucide-react';
+import { Plus, Edit3, Trash2, Tag, Car, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatRupiah } from '@/lib/format';
 import type { SerializedCarModel } from '@/types';
@@ -16,6 +16,46 @@ export default function KatalogListClient({ cars: initialCars }: KatalogListClie
   const router = useRouter();
   const [cars, setCars] = useState(initialCars);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const handleToggleActive = async (id: string, currentStatus: boolean, name: string) => {
+    const newStatus = !currentStatus;
+    setTogglingId(id);
+
+    // Optimistic UI update
+    setCars((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, isActive: newStatus } : c))
+    );
+
+    try {
+      const res = await fetch(`/api/cars/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: newStatus }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Gagal mengubah status unit');
+      }
+
+      toast.success(
+        `Unit "${name}" berhasil ${
+          newStatus ? 'diaktifkan (tayang di katalog)' : 'dinonaktifkan (disembunyikan dari katalog)'
+        }.`
+      );
+      router.refresh();
+    } catch (err: unknown) {
+      // Revert status on failure
+      setCars((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, isActive: currentStatus } : c))
+      );
+      const message = err instanceof Error ? err.message : 'Terjadi kesalahan saat mengubah status.';
+      toast.error(message);
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Apakah Anda yakin ingin menghapus model "${name}" beserta seluruh variannya?`)) {
@@ -122,20 +162,45 @@ export default function KatalogListClient({ cars: initialCars }: KatalogListClie
                   </td>
 
                   <td className="py-3.5 px-4">
-                    {car.isActive ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                        Aktif
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
-                        Nonaktif
-                      </span>
-                    )}
+                    <button
+                      type="button"
+                      disabled={togglingId === car.id}
+                      onClick={() => handleToggleActive(car.id, car.isActive, car.name)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                        car.isActive
+                          ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 hover:border-green-300'
+                          : 'bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200 hover:text-gray-700'
+                      } disabled:opacity-50`}
+                      title={car.isActive ? 'Klik untuk Nonaktifkan (Sembunyikan dari Publik)' : 'Klik untuk Aktifkan (Tayangkan ke Publik)'}
+                    >
+                      {togglingId === car.id ? (
+                        <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping" />
+                      ) : (
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            car.isActive ? 'bg-green-500' : 'bg-gray-400'
+                          }`}
+                        />
+                      )}
+                      <span>{car.isActive ? 'Aktif (Tayang)' : 'Nonaktif (Draft)'}</span>
+                    </button>
                   </td>
 
                   <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        disabled={togglingId === car.id}
+                        onClick={() => handleToggleActive(car.id, car.isActive, car.name)}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50 ${
+                          car.isActive
+                            ? 'text-gray-400 hover:text-amber-600 hover:bg-amber-50'
+                            : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                        }`}
+                        title={car.isActive ? 'Nonaktifkan Unit (Sembunyikan dari Publik)' : 'Aktifkan Unit (Tayangkan ke Publik)'}
+                      >
+                        {car.isActive ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
                       <Link
                         href={`/admin/katalog/${car.id}`}
                         className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
@@ -147,7 +212,7 @@ export default function KatalogListClient({ cars: initialCars }: KatalogListClie
                         type="button"
                         disabled={deletingId === car.id}
                         onClick={() => handleDelete(car.id, car.name)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                         title="Hapus Model"
                       >
                         <Trash2 size={16} />

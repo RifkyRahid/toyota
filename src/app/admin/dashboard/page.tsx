@@ -1,11 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import DashboardClient from '@/components/admin/DashboardClient';
 import type { Lead } from '@prisma/client';
+import { getSession } from '@/lib/auth';
 
 export const revalidate = 0; // Dynamic server component
 
 export default async function AdminDashboardPage() {
-  const [carModels, allLeadsRaw, ctaClicksRaw] = await Promise.all([
+  const [session, carModels, allLeadsRaw, ctaClicksRaw] = await Promise.all([
+    getSession(),
     prisma.carModel.findMany({
       where: { isActive: true },
       orderBy: { displayOrder: 'asc' },
@@ -18,6 +20,8 @@ export default async function AdminDashboardPage() {
       orderBy: { createdAt: 'desc' },
     }),
   ]);
+
+  const isSuperadmin = session?.role === 'SUPERADMIN';
 
   const totalLeads = allLeadsRaw.length;
   const newLeads = allLeadsRaw.filter((l) => l.status === 'BARU').length;
@@ -109,6 +113,7 @@ export default async function AdminDashboardPage() {
       allLeads={allLeadsSerialized}
       allClicks={allClicksSerialized}
       allCars={allCarsSerialized}
+      isSuperadmin={isSuperadmin}
     />
   );
 }

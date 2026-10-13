@@ -1,7 +1,15 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { FileDown } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { FileDown, RotateCcw, AlertTriangle, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import AnalyticsChart, { type HourlyMeta } from './AnalyticsChart';
 import ReportModal from './ReportModal';
 
@@ -12,6 +20,7 @@ interface DashboardClientProps {
   newLeads: number;
   dealLeads: number;
   totalCars: number;
+  isSuperadmin?: boolean;
   topCars: Array<{
     id: string;
     name: string;
@@ -59,14 +68,44 @@ export default function DashboardClient({
   totalCars,
   topCars,
   recentLeads,
-  hourlyData = [],
-  totalClicks = 0,
+  hourlyData: _hourlyData = [],
+  totalClicks: _totalClicks = 0,
   allLeads = [],
   allClicks = [],
   allCars = [],
+  isSuperadmin = false,
 }: DashboardClientProps) {
+  const router = useRouter();
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [chartFilter, setChartFilter] = useState<ChartFilterType>('all');
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [includeLeadsReset, setIncludeLeadsReset] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleResetAnalytics = async () => {
+    setIsResetting(true);
+    try {
+      const res = await fetch('/api/admin/analytics/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ includeLeads: includeLeadsReset }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Gagal membersihkan data analitik');
+      }
+
+      toast.success('Riwayat grafik dan analitik berhasil dibersihkan!');
+      setIsResetModalOpen(false);
+      router.refresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan.';
+      toast.error(msg);
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   const effectiveLeads = allLeads.length > 0 ? allLeads : recentLeads;
   const effectiveClicks = allClicks;
@@ -197,14 +236,28 @@ export default function DashboardClient({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsReportModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
-        >
-          <FileDown size={17} />
-          <span>Tarik Laporan Kinerja (PDF)</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {isSuperadmin && (
+            <button
+              type="button"
+              onClick={() => setIsResetModalOpen(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-sm font-semibold rounded-lg shadow-2xs transition-colors cursor-pointer"
+              title="Khusus Superadmin: Bersihkan data interaksi / klik tes yang terekam saat input unit"
+            >
+              <RotateCcw size={15} className="text-amber-600" />
+              <span>Bersihkan Riwayat Grafik</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsReportModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+          >
+            <FileDown size={17} />
+            <span>Tarik Laporan Kinerja (PDF)</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Summary Cards */}
@@ -310,6 +363,17 @@ export default function DashboardClient({
             <span className="text-[11px] text-gray-400 bg-gray-100 px-2 py-1 rounded border border-gray-200">
               {isRealData ? 'Data Riil' : 'Data Sampel Baseline'}
             </span>
+            {isSuperadmin && (
+              <button
+                type="button"
+                onClick={() => setIsResetModalOpen(true)}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded border border-amber-200 transition-colors cursor-pointer"
+                title="Khusus Superadmin: Reset riwayat grafik hasil testing"
+              >
+                <RotateCcw size={12} />
+                <span>Reset Grafik</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -451,6 +515,80 @@ export default function DashboardClient({
         allClicks={effectiveClicks}
         allCars={effectiveCars}
       />
+
+      {/* Modal Konfirmasi Bersihkan Riwayat Grafik (Khusus Superadmin) */}
+      <Dialog open={isResetModalOpen} onOpenChange={setIsResetModalOpen}>
+        <DialogContent className="sm:max-w-md p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+              <AlertTriangle size={20} />
+            </div>
+            <div>
+              <DialogTitle className="text-lg font-bold text-gray-900">
+                Bersihkan Riwayat Grafik & Analitik
+              </DialogTitle>
+              <span className="inline-block text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700 px-2 py-0.5 rounded-full mt-0.5">
+                Fitur Khusus Superadmin
+              </span>
+            </div>
+          </div>
+
+          <DialogDescription className="text-sm text-gray-600 space-y-3 mt-2">
+            <p>
+              Tindakan ini akan mengosongkan seluruh rekaman <strong>klik tombol (CTA)</strong> dan <strong>grafik jam sibuk</strong> yang terakumulasi selama proses input unit &amp; uji coba tombol.
+            </p>
+            <p className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">
+              💡 <strong>Mengapa fitur ini ada:</strong> Saat website sudah live tetapi Anda masih melakukan klik uji coba dan input mobil, data testing tersebut membuat grafik menjadi tidak murni. Tombol ini mengembalikan grafik ke posisi bersih (0).
+            </p>
+          </DialogDescription>
+
+          <div className="mt-4 p-3 bg-amber-50/70 rounded-lg border border-amber-200/80">
+            <label className="flex items-start gap-2.5 cursor-pointer text-xs text-gray-700 font-medium select-none">
+              <input
+                type="checkbox"
+                checked={includeLeadsReset}
+                onChange={(e) => setIncludeLeadsReset(e.target.checked)}
+                className="mt-0.5 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
+              />
+              <span>
+                Ikut bersihkan juga data formulir prospek (<strong className="text-gray-900">Leads</strong>) hasil testing.
+                <span className="block text-[11px] text-gray-500 font-normal mt-0.5">
+                  (Biarkan tidak dicentang jika Anda hanya ingin mereset grafik klik dan tetap mempertahankan prospek formulir yang masuk)
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <div className="flex items-center justify-end gap-2.5 mt-6 pt-4 border-t border-gray-100">
+            <button
+              type="button"
+              disabled={isResetting}
+              onClick={() => setIsResetModalOpen(false)}
+              className="px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              disabled={isResetting}
+              onClick={handleResetAnalytics}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {isResetting ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Membersihkan...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 size={14} />
+                  <span>Ya, Bersihkan Riwayat</span>
+                </>
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

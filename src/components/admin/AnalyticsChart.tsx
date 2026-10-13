@@ -42,9 +42,6 @@ export default function AnalyticsChart({
   hourlyMeta,
   filterType = 'all',
 }: AnalyticsChartProps) {
-  // Gunakan data riil jika ada data
-  const hasRealData = Boolean(data && data.some((count) => count > 0));
-  
   // Tampilkan data 0 murni jika filter adalah hari ini, atau fallback baseline jika instalasi awal kosong di 'all'
   const hoursData = data && data.length === 24
     ? data
