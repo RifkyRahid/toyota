@@ -75,13 +75,13 @@ export default async function CarDetailPage({ params }: Props) {
 
   return (
     <main className="bg-white min-h-screen pb-24 md:pb-0">
-      {/* ── Banner Hero Widescreen (Fit di Layar Mobile, Megah di Layar Desktop) ── */}
+      {/* ── Banner Hero Widescreen (Fit Penuh ke Layar, Tanpa Terpotong & Tanpa Space Hitam) ── */}
       {car.bannerImage ? (
-        <section className="relative w-full bg-zinc-950 overflow-hidden flex items-center justify-center">
+        <section className="relative w-full overflow-hidden">
           <img
             src={car.bannerImage}
             alt={`Banner Toyota ${car.name}`}
-            className="w-full h-auto max-h-[550px] object-contain block mx-auto"
+            className="w-full h-auto block select-none"
           />
         </section>
       ) : (
