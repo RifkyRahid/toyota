@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FileDown, RotateCcw, AlertTriangle, Trash2 } from 'lucide-react';
+import { FileDown, RotateCcw, AlertTriangle, Trash2, Sparkles, Eye, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -59,6 +60,18 @@ interface DashboardClientProps {
     startingPrice: string;
     isPromo: boolean;
   }>;
+  promoFlyers?: Array<{
+    id: string;
+    title: string;
+    mode: string;
+    highlight1Label: string;
+    highlight1Value: string;
+    highlight2Label: string;
+    highlight2Value: string;
+    viewCount: number;
+    waClickCount: number;
+    isActive: boolean;
+  }>;
 }
 
 export default function DashboardClient({
@@ -73,6 +86,7 @@ export default function DashboardClient({
   allLeads = [],
   allClicks = [],
   allCars = [],
+  promoFlyers = [],
   isSuperadmin = false,
 }: DashboardClientProps) {
   const router = useRouter();
@@ -504,6 +518,101 @@ export default function DashboardClient({
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      {/* Performa Flyer Promo & Paket Kredit */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
+        <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <Sparkles size={17} className="text-red-600" />
+              <span>Performa Interaksi Flyer Promo (Halaman Utama)</span>
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Pantau flyer/promo mana yang paling sering diperbesar (Lightbox) dan diklaim via WhatsApp oleh pengunjung
+            </p>
+          </div>
+          <Link
+            href="/admin/flyer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold rounded-lg transition-colors self-start sm:self-auto"
+          >
+            <span>Kelola Flyer Promo →</span>
+          </Link>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-gray-600">
+            <thead className="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+              <tr>
+                <th className="py-3 px-4">No</th>
+                <th className="py-3 px-4">Judul Flyer / Unit</th>
+                <th className="py-3 px-4">Tipe Desain</th>
+                <th className="py-3 px-4">Penawaran Utama</th>
+                <th className="py-3 px-4 text-center">Diperbesar (Lightbox)</th>
+                <th className="py-3 px-4 text-right">Klaim Promo via WA</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {promoFlyers.map((flyer, idx) => (
+                <tr key={flyer.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="py-3 px-4 font-bold text-gray-400">#{idx + 1}</td>
+                  <td className="py-3 px-4 font-semibold text-gray-900">
+                    {flyer.title}
+                    {!flyer.isActive && (
+                      <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 font-bold rounded">
+                        NONAKTIF
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4">
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                        flyer.mode === 'IMAGE'
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                          : 'bg-zinc-100 text-zinc-700'
+                      }`}
+                    >
+                      {flyer.mode === 'IMAGE' ? 'Gambar Poster' : 'Auto-Flyer'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-gray-700 font-medium">
+                    {flyer.highlight1Label} <strong className="text-red-600">{flyer.highlight1Value}</strong> •{' '}
+                    {flyer.highlight2Label} <strong>{flyer.highlight2Value}</strong>
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
+                      <Eye size={12} />
+                      <span>{flyer.viewCount}x</span>
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        flyer.waClickCount > 0
+                          ? 'bg-green-50 text-green-700 border border-green-200'
+                          : 'bg-gray-50 text-gray-400'
+                      }`}
+                    >
+                      <MessageCircle size={12} />
+                      <span>{flyer.waClickCount} klaim</span>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {promoFlyers.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center text-gray-400">
+                    Belum ada flyer promo yang disimpan di database. Buka menu{' '}
+                    <Link href="/admin/flyer" className="text-red-600 font-semibold underline">
+                      Flyer Promo
+                    </Link>{' '}
+                    untuk membuat atau mengimpor otomatis dari katalog.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

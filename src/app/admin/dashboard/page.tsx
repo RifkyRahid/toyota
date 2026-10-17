@@ -6,7 +6,7 @@ import { getSession } from '@/lib/auth';
 export const revalidate = 0; // Dynamic server component
 
 export default async function AdminDashboardPage() {
-  const [session, carModels, allLeadsRaw, ctaClicksRaw] = await Promise.all([
+  const [session, carModels, allLeadsRaw, ctaClicksRaw, promoFlyersRaw] = await Promise.all([
     getSession(),
     prisma.carModel.findMany({
       where: { isActive: true },
@@ -18,6 +18,9 @@ export default async function AdminDashboardPage() {
     prisma.ctaClick.findMany({
       select: { carName: true, buttonType: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
+    }),
+    prisma.promoFlyer.findMany({
+      orderBy: [{ waClickCount: 'desc' }, { viewCount: 'desc' }, { displayOrder: 'asc' }],
     }),
   ]);
 
@@ -98,6 +101,19 @@ export default async function AdminDashboardPage() {
     createdAt: click.createdAt.toISOString(),
   }));
 
+  const promoFlyersSerialized = promoFlyersRaw.map((f) => ({
+    id: f.id,
+    title: f.title,
+    mode: f.mode,
+    highlight1Label: f.highlight1Label,
+    highlight1Value: f.highlight1Value,
+    highlight2Label: f.highlight2Label,
+    highlight2Value: f.highlight2Value,
+    viewCount: f.viewCount,
+    waClickCount: f.waClickCount,
+    isActive: f.isActive,
+  }));
+
   const recentLeads = allLeadsSerialized.slice(0, 15);
 
   return (
@@ -113,6 +129,7 @@ export default async function AdminDashboardPage() {
       allLeads={allLeadsSerialized}
       allClicks={allClicksSerialized}
       allCars={allCarsSerialized}
+      promoFlyers={promoFlyersSerialized}
       isSuperadmin={isSuperadmin}
     />
   );

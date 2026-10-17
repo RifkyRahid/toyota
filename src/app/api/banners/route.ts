@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { title, subtitle, ctaText, ctaUrl, imageUrl, displayOrder, isActive } = body;
+    const { title, subtitle, ctaText, ctaUrl, imageUrl, imageUrlMobile, displayOrder, isActive } = body;
 
     if (!title || !imageUrl || !ctaUrl) {
       return NextResponse.json(
@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
         ctaText: ctaText ?? 'Minta Penawaran',
         ctaUrl,
         imageUrl,
+        imageUrlMobile: imageUrlMobile || null,
         displayOrder: displayOrder ?? 0,
         isActive: isActive ?? true,
       },

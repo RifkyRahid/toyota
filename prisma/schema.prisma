@@ -58,9 +58,10 @@ model CarModel {
   name           String      // Contoh: "All New Kijang Innova Zenix"
   slug           String      @unique // Contoh: "innova-zenix-batam" (SEO-friendly)
   category       CarCategory @default(MPV)
-  heroImage      String      // Path gambar transparan utama (/uploads/...)
-  bannerImage    String?     // Path banner landscape lebar halaman model mobil (/uploads/...)
-  startingPrice  BigInt      // Cache harga terendah untuk query sorting/filter cepat
+  heroImage         String      // Path gambar transparan utama (/uploads/...)
+  bannerImage       String?     // Path banner landscape lebar halaman model mobil (/uploads/...)
+  bannerImageMobile String?     // Path banner portrait khusus tampilan mobile (/uploads/...)
+  startingPrice     BigInt      // Cache harga terendah untuk query sorting/filter cepat
   isPromo        Boolean     @default(false) // Toggle badge "PROMO BULAN INI"
   promoLabel     String?     // Contoh: "DP Ringan 15 Juta" atau "Bunga 0%"
   brochurePdfUrl String?     // Path file spesifikasi PDF khusus model ini
@@ -131,16 +132,17 @@ model Lead {
 // ------------------------------------------------------
 
 model Banner {
-  id           String   @id @default(cuid())
-  title        String   // Judul Promo (HTML Overlay, bukan gambar mati)
-  subtitle     String?  // Subjudul / Keterangan Singkat
-  ctaText      String   @default("Minta Penawaran")
-  ctaUrl       String   // Tautan tujuan (bisa anchor #katalog atau link WA)
-  imageUrl     String   // Background image banner (/uploads/...)
-  displayOrder Int      @default(0)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(cuid())
+  title          String   // Judul Promo (HTML Overlay, bukan gambar mati)
+  subtitle       String?  // Subjudul / Keterangan Singkat
+  ctaText        String   @default("Minta Penawaran")
+  ctaUrl         String   // Tautan tujuan (bisa anchor #katalog atau link WA)
+  imageUrl       String   // Background image banner desktop/landscape (/uploads/...)
+  imageUrlMobile String?  // Background image banner mobile/portrait (/uploads/...)
+  displayOrder   Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@map("banners")
 }
@@ -202,7 +204,7 @@ model SiteSetting {
 model CtaClick {
   id         String   @id @default(cuid())
   carName    String?  // Nama mobil jika klik dari unit tertentu (misal: "Avanza")
-  buttonType String   // "KATALOG_CARD" | "VARIAN_DETAIL" | "FLOATING_WA" | "NAVBAR" | "MOBILE_BAR" | "PROMO_DETAIL" | "SALES_SECTION" | "FOOTER"
+  buttonType String   // "KATALOG_CARD" | "VARIAN_DETAIL" | "FLOATING_WA" | "NAVBAR" | "MOBILE_BAR" | "PROMO_DETAIL" | "SALES_SECTION" | "FOOTER" | "PROMO_FLYER"
   sourcePage String?  // Halaman asal, misal "/", "/katalog", "/promo/..."
   createdAt  DateTime @default(now())
 
@@ -211,4 +213,36 @@ model CtaClick {
   @@index([createdAt])
   @@map("cta_clicks")
 }
+
+// ------------------------------------------------------
+// 7. FLYER PROMO & PAKET KREDIT (HYBRID: AUTO & CUSTOM IMAGE)
+// ------------------------------------------------------
+
+model PromoFlyer {
+  id              String   @id @default(cuid())
+  mode            String   @default("AUTO") // "AUTO" (Render Otomatis) | "IMAGE" (Upload Gambar Poster)
+  theme           String   @default("RED_WHITE") // "RED_WHITE" | "DARK_LUXURY" | "SILVER_SPORT"
+  title           String   // Nama Unit / Judul Promo, misal: "Toyota All New Avanza"
+  eventTag        String   @default("TOYOTA SPEKTAKULER") // Tagline atas
+  subtitle        String?  // Info tambahan, misal: "OTR Batam • Syarat & Ketentuan Berlaku"
+  carSlug         String?  // Slug mobil terkait (opsional, untuk link ke detail unit)
+  carImageUrl     String?  // Foto mobil transparan untuk mode AUTO (/uploads/...)
+  customImageUrl  String?  // Gambar poster siap pakai untuk mode IMAGE (/uploads/...)
+  highlight1Label String   @default("Cicilan Mulai")
+  highlight1Value String   @default("3 Jtan")
+  highlight2Label String   @default("DP Mulai")
+  highlight2Value String   @default("15%")
+  benefits        String[] // Contoh: ["Bunga 0%", "Cash Bertahap 50:50", "Bonus Aksesoris", "Trade-In All Brand"]
+  waCustomMessage String?  // Pesan WA kustom (opsional)
+  viewCount       Int      @default(0) // Jumlah klik Lightbox Preview (diperbesar)
+  waClickCount    Int      @default(0) // Jumlah klik tombol "Klaim Promo via WA"
+  displayOrder    Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([isActive, displayOrder])
+  @@map("promo_flyers")
+}
+
 

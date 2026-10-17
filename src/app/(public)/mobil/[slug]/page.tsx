@@ -75,14 +75,22 @@ export default async function CarDetailPage({ params }: Props) {
 
   return (
     <main className="bg-white min-h-screen pb-24 md:pb-0">
-      {/* ── Banner Hero Widescreen (Fit Penuh ke Layar, Tanpa Terpotong & Tanpa Space Hitam) ── */}
-      {car.bannerImage ? (
+      {/* ── Banner Hero (Mendukung Dual Banner: Desktop Landscape & Mobile Portrait) ── */}
+      {car.bannerImage || car.bannerImageMobile ? (
         <section className="relative w-full overflow-hidden">
-          <img
-            src={car.bannerImage}
-            alt={`Banner Toyota ${car.name}`}
-            className="w-full h-auto block select-none"
-          />
+          <picture className="block w-full">
+            {car.bannerImageMobile && (
+              <source
+                media="(max-width: 767px)"
+                srcSet={car.bannerImageMobile}
+              />
+            )}
+            <img
+              src={car.bannerImage || car.bannerImageMobile || car.heroImage}
+              alt={`Banner Toyota ${car.name}`}
+              className="w-full h-auto block select-none"
+            />
+          </picture>
         </section>
       ) : (
         /* Fallback: Jika model belum memiliki banner khusus, tampilkan foto studio */

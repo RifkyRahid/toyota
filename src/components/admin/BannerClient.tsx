@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, Upload, Loader2, X, Check } from 'lucide-react';
+import { Plus, Trash2, Upload, Loader2, X, Check, Pencil, Smartphone, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
 
 export interface BannerItem {
@@ -12,6 +12,7 @@ export interface BannerItem {
   ctaText: string;
   ctaUrl: string;
   imageUrl: string;
+  imageUrlMobile?: string | null;
   displayOrder: number;
   isActive: boolean;
 }
@@ -24,13 +25,39 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
   const router = useRouter();
   const [banners, setBanners] = useState<BannerItem[]>(initialBanners);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<BannerItem | null>(null);
+
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [ctaText, setCtaText] = useState('Minta Penawaran');
   const [ctaUrl, setCtaUrl] = useState('#katalog');
   const [imageUrl, setImageUrl] = useState('');
+  const [imageUrlMobile, setImageUrlMobile] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingImageMobile, setUploadingImageMobile] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const openCreateModal = () => {
+    setEditingBanner(null);
+    setTitle('');
+    setSubtitle('');
+    setCtaText('Minta Penawaran');
+    setCtaUrl('#katalog');
+    setImageUrl('');
+    setImageUrlMobile('');
+    setModalOpen(true);
+  };
+
+  const openEditModal = (banner: BannerItem) => {
+    setEditingBanner(banner);
+    setTitle(banner.title);
+    setSubtitle(banner.subtitle || '');
+    setCtaText(banner.ctaText);
+    setCtaUrl(banner.ctaUrl);
+    setImageUrl(banner.imageUrl);
+    setImageUrlMobile(banner.imageUrlMobile || '');
+    setModalOpen(true);
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,10 +74,10 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
         body: formData,
       });
 
-      if (!res.ok) throw new Error('Upload banner gagal');
+      if (!res.ok) throw new Error('Upload banner desktop gagal');
       const data = await res.json();
       setImageUrl(data.url);
-      toast.success('Foto banner berhasil diunggah.');
+      toast.success('Foto banner desktop berhasil diunggah.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error upload';
       toast.error(msg);
@@ -59,37 +86,83 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleImageMobileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImageMobile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('context', 'banner');
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Upload banner mobile gagal');
+      const data = await res.json();
+      setImageUrlMobile(data.url);
+      toast.success('Foto banner mobile (potret) berhasil diunggah.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error upload';
+      toast.error(msg);
+    } finally {
+      setUploadingImageMobile(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !imageUrl || !ctaUrl) {
-      toast.error('Judul, foto banner, dan URL tujuan wajib diisi.');
+      toast.error('Judul, foto banner desktop, dan URL tujuan wajib diisi.');
       return;
     }
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/banners', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          subtitle: subtitle || null,
-          ctaText,
-          ctaUrl,
-          imageUrl,
-          displayOrder: banners.length,
-          isActive: true,
-        }),
-      });
+      if (editingBanner) {
+        const res = await fetch(`/api/banners/${editingBanner.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            subtitle: subtitle || null,
+            ctaText,
+            ctaUrl,
+            imageUrl,
+            imageUrlMobile: imageUrlMobile || null,
+          }),
+        });
 
-      if (!res.ok) throw new Error('Gagal membuat banner');
-      const newBanner = await res.json();
-      setBanners((prev) => [...prev, newBanner]);
-      toast.success('Banner baru berhasil ditambahkan.');
+        if (!res.ok) throw new Error('Gagal memperbarui banner');
+        const updated = await res.json();
+        setBanners((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+        toast.success('Banner berhasil diperbarui.');
+      } else {
+        const res = await fetch('/api/banners', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            subtitle: subtitle || null,
+            ctaText,
+            ctaUrl,
+            imageUrl,
+            imageUrlMobile: imageUrlMobile || null,
+            displayOrder: banners.length,
+            isActive: true,
+          }),
+        });
+
+        if (!res.ok) throw new Error('Gagal membuat banner');
+        const newBanner = await res.json();
+        setBanners((prev) => [...prev, newBanner]);
+        toast.success('Banner baru berhasil ditambahkan.');
+      }
+
       setModalOpen(false);
-      setTitle('');
-      setSubtitle('');
-      setImageUrl('');
       router.refresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Terjadi kesalahan.';
@@ -124,13 +197,13 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
             Hero Slider Banner
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Kelola slide gambar dan teks judul promo utama di bagian atas halaman beranda.
+            Kelola slide gambar promo utama (mendukung versi Desktop Landscape &amp; Mobile Portrait).
           </p>
         </div>
 
         <button
           type="button"
-          onClick={() => setModalOpen(true)}
+          onClick={openCreateModal}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer self-start"
         >
           <Plus size={17} />
@@ -151,6 +224,22 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
                 alt={b.title}
                 className="w-full h-full object-cover opacity-80"
               />
+              {/* Badge Ketersediaan Versi Desktop & Mobile */}
+              <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-black/60 text-white backdrop-blur-xs">
+                  <Monitor size={11} /> Desktop
+                </span>
+                {b.imageUrlMobile ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-600/90 text-white backdrop-blur-xs">
+                    <Smartphone size={11} /> Mobile Potret
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-700/80 text-zinc-300 backdrop-blur-xs">
+                    <Smartphone size={11} /> Auto-Fallback
+                  </span>
+                )}
+              </div>
+
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex flex-col justify-end">
                 <h3 className="text-white font-bold text-lg leading-snug drop-shadow">
                   {b.title}
@@ -168,31 +257,43 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
               <span className="text-xs text-gray-400 font-mono">
                 Urutan: #{b.displayOrder}
               </span>
-              <button
-                type="button"
-                onClick={() => handleDelete(b.id, b.title)}
-                className="text-xs text-red-600 hover:text-red-700 font-semibold flex items-center gap-1"
-              >
-                <Trash2 size={14} />
-                <span>Hapus Banner</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => openEditModal(b)}
+                  className="text-xs text-gray-600 hover:text-gray-900 font-semibold flex items-center gap-1 cursor-pointer"
+                >
+                  <Pencil size={13} />
+                  <span>Edit</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(b.id, b.title)}
+                  className="text-xs text-red-600 hover:text-red-700 font-semibold flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 size={14} />
+                  <span>Hapus</span>
+                </button>
+              </div>
             </div>
           </div>
         ))}
 
         {banners.length === 0 && (
           <div className="col-span-full py-12 text-center text-gray-400 bg-white rounded-xl border border-gray-200">
-            Belum ada banner promo khusus. Hero section akan menampilkan background default resmi.
+            Belum ada banner promo khusus. Hero section akan menampilkan banner dari katalog mobil atau background default.
           </div>
         )}
       </div>
 
-      {/* Modal Tambah Banner */}
+      {/* Modal Tambah / Edit Banner */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-8">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-base font-bold text-gray-900">Tambah Banner Hero Baru</h2>
+              <h2 className="text-base font-bold text-gray-900">
+                {editingBanner ? 'Edit Banner Hero' : 'Tambah Banner Hero Baru'}
+              </h2>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
@@ -202,7 +303,7 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
                   Judul Banner (HTML Overlay) <span className="text-red-600">*</span>
@@ -257,15 +358,18 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
                 </div>
               </div>
 
-              {/* Upload Foto Banner */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                  Foto Latar Banner (Maks lebar 1920px) <span className="text-red-600">*</span>
+              {/* 1. Upload Foto Banner Desktop (Landscape) */}
+              <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                <label className="block text-xs font-bold text-gray-800 uppercase">
+                  1. Banner Desktop / Landscape <span className="text-red-600">*</span>
                 </label>
+                <p className="text-[11px] text-gray-500">
+                  Ukuran widescreen (misal 1920x800px / rasio 21:9 atau 16:9) untuk tampilan layar komputer.
+                </p>
                 <div className="flex items-center gap-3">
-                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition-colors">
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg border border-gray-200 shadow-2xs transition-colors shrink-0">
                     <Upload size={14} />
-                    <span>{uploadingImage ? 'Mengunggah...' : 'Upload Foto Banner'}</span>
+                    <span>{uploadingImage ? 'Mengunggah...' : 'Upload Desktop'}</span>
                     <input
                       type="file"
                       onChange={handleImageUpload}
@@ -278,8 +382,49 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
                     type="text"
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="/uploads/banner.webp"
-                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono"
+                    placeholder="/uploads/banner-desktop.webp"
+                    className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* 2. Upload Foto Banner Mobile (Portrait) */}
+              <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-gray-800 uppercase">
+                    2. Banner Mobile / Portrait <span className="text-gray-400 font-normal lowercase">(opsional)</span>
+                  </label>
+                  {imageUrlMobile && (
+                    <button
+                      type="button"
+                      onClick={() => setImageUrlMobile('')}
+                      className="text-[11px] text-red-600 hover:underline font-medium"
+                    >
+                      Hapus
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-gray-500">
+                  Ukuran vertikal (rasio 9:16 atau 3:4) agar tampil <strong>penuh 1 layar HP</strong>. Jika kosong, otomatis memakai banner desktop.
+                </p>
+                <div className="flex items-center gap-3">
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg border border-gray-200 shadow-2xs transition-colors shrink-0">
+                    <Upload size={14} />
+                    <span>{uploadingImageMobile ? 'Mengunggah...' : 'Upload Mobile'}</span>
+                    <input
+                      type="file"
+                      onChange={handleImageMobileUpload}
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      disabled={uploadingImageMobile}
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    value={imageUrlMobile}
+                    onChange={(e) => setImageUrlMobile(e.target.value)}
+                    placeholder="/uploads/banner-mobile.webp"
+                    className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-mono"
                   />
                 </div>
               </div>
@@ -298,7 +443,7 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
                   className="inline-flex items-center gap-2 px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg shadow-sm disabled:opacity-50"
                 >
                   {submitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                  <span>Simpan Banner</span>
+                  <span>{editingBanner ? 'Simpan Perubahan' : 'Simpan Banner'}</span>
                 </button>
               </div>
             </form>

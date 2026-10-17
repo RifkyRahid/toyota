@@ -23,8 +23,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const { includeLeads = false } = body;
 
-    // Bersihkan seluruh riwayat klik CTA (acuan grafik jam sibuk)
-    const deletedClicks = await prisma.ctaClick.deleteMany({});
+    // Bersihkan seluruh riwayat klik CTA (acuan grafik jam sibuk) & klik flyer promo
+    const [deletedClicks] = await Promise.all([
+      prisma.ctaClick.deleteMany({}),
+      prisma.promoFlyer.updateMany({
+        data: { viewCount: 0, waClickCount: 0 },
+      }),
+    ]);
 
     let deletedLeadsCount = 0;
     if (includeLeads) {
@@ -32,8 +37,9 @@ export async function POST(req: NextRequest) {
       deletedLeadsCount = deletedLeads.count;
     }
 
-    // Revalidasi dasbor admin
+    // Revalidasi dasbor admin & halaman flyer
     revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/flyer');
 
     return NextResponse.json({
       message: 'Riwayat analitik & grafik berhasil dibersihkan.',

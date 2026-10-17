@@ -11,6 +11,7 @@ export interface Banner {
   ctaText: string;
   ctaUrl: string;
   imageUrl: string;
+  imageUrlMobile?: string | null;
 }
 
 interface HeroSliderProps {
@@ -94,7 +95,7 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Slides Container: Tinggi mengikuti rasio poster asli secara proporsional */}
+      {/* Slides Container: Tinggi mengikuti rasio poster asli (Portrait di Mobile jika tersedia, Landscape di Desktop) */}
       <div className="relative w-full">
         {banners.map((banner, index) => {
           const isActive = index === currentSlide;
@@ -115,12 +116,20 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
                 className="block w-full cursor-pointer relative group"
                 tabIndex={isActive ? 0 : -1}
               >
-                <img
-                  src={banner.imageUrl}
-                  alt={banner.title}
-                  className={`w-full ${isActive ? 'h-auto' : 'h-full object-cover'} block select-none`}
-                  loading={index === 0 ? 'eager' : 'lazy'}
-                />
+                <picture className="block w-full">
+                  {banner.imageUrlMobile && (
+                    <source
+                      media="(max-width: 767px)"
+                      srcSet={banner.imageUrlMobile}
+                    />
+                  )}
+                  <img
+                    src={banner.imageUrl}
+                    alt={banner.title}
+                    className={`w-full ${isActive ? 'h-auto' : 'h-full object-cover'} block select-none`}
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                  />
+                </picture>
 
                 {/* Subtle gradient di desktop agar teks terbaca tanpa menutupi/menggelapkan mobil */}
                 <div className="hidden md:block absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent group-hover:from-black/60 transition-colors" />
@@ -190,7 +199,7 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
             onClick={() =>
               setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length)
             }
-            className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white transition-colors backdrop-blur-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="hidden md:flex absolute left-4 top-[38%] -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white transition-colors backdrop-blur-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer"
             aria-label="Slide sebelumnya"
           >
             <svg
@@ -209,7 +218,7 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
           </button>
           <button
             onClick={goToNext}
-            className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white transition-colors backdrop-blur-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="hidden md:flex absolute right-4 md:right-6 top-[38%] -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white transition-colors backdrop-blur-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer"
             aria-label="Slide berikutnya"
           >
             <svg

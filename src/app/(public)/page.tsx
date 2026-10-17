@@ -12,11 +12,11 @@
  */
 
 import HeroSlider, { type Banner } from '@/components/public/HeroSlider';
-import CarCard from '@/components/public/CarCard';
+import PromoFlyerSection from '@/components/public/PromoFlyerSection';
 import CatalogSection from '@/components/public/CatalogSection';
 import SalesSection from '@/components/public/SalesSection';
 import BlogSection from '@/components/public/BlogSection';
-import type { SerializedCarModel, SiteSetting } from '@/types';
+import type { SerializedCarModel, SiteSetting, PromoFlyerItem } from '@/types';
 import { formatRupiah } from '@/lib/format';
 
 // ── Fetch helpers ─────────────────────────────────────────────
@@ -56,7 +56,18 @@ async function fetchBanners(): Promise<Banner[]> {
     if (!res.ok) return [];
     return res.json();
   } catch {
-    // Endpoint belum tersedia — gunakan fallback kosong
+    return [];
+  }
+}
+
+async function fetchFlyers(): Promise<PromoFlyerItem[]> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/flyers`, {
+      next: { revalidate: REVALIDATE },
+    });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
     return [];
   }
 }
@@ -78,7 +89,6 @@ async function fetchBlogs(): Promise<BlogPost[]> {
     if (!res.ok) return [];
     return res.json();
   } catch {
-    // Endpoint belum tersedia — gunakan fallback kosong
     return [];
   }
 }
@@ -87,21 +97,60 @@ async function fetchBlogs(): Promise<BlogPost[]> {
 
 export default async function HomePage() {
   // Parallel fetch — semua request berjalan bersamaan
-  const [allCars, settings, banners, blogs] = await Promise.all([
+  const [allCars, settings, banners, flyers, blogs] = await Promise.all([
     fetchAllCars(),
     fetchSettings(),
     fetchBanners(),
+    fetchFlyers(),
     fetchBlogs(),
   ]);
 
-  // Filter promo cars dari hasil fetch (max 3)
-  const promoCars: SerializedCarModel[] = allCars
+  // Fallback otomatis dari mobil bertanda Promo jika tabel promo_flyers masih kosong
+  const themes: Array<'RED_WHITE' | 'DARK_LUXURY' | 'SILVER_SPORT'> = [
+    'RED_WHITE',
+    'DARK_LUXURY',
+    'SILVER_SPORT',
+  ];
+  const fallbackFlyers: PromoFlyerItem[] = allCars
     .filter((car) => car.isPromo)
-    .slice(0, 3);
+    .slice(0, 6)
+    .map((car, idx) => ({
+      id: `fallback-${car.id}`,
+      mode: 'AUTO',
+      theme: themes[idx % themes.length],
+      title: car.name,
+      eventTag: 'TOYOTA SPEKTAKULER',
+      subtitle: `OTR Batam Mulai ${formatRupiah(car.startingPrice)}`,
+      carSlug: car.slug,
+      carImageUrl: car.heroImage,
+      customImageUrl: null,
+      highlight1Label: 'Penawaran Spesial',
+      highlight1Value: car.promoLabel || 'Cicilan Ringan',
+      highlight2Label: 'DP Mulai',
+      highlight2Value: '15%',
+      benefits: [
+        'Bunga 0%',
+        'Cash Bertahap 50:50',
+        'Gratis Aksesoris',
+        'Trade-In All Brand',
+      ],
+      waCustomMessage: null,
+      viewCount: 0,
+      waClickCount: 0,
+      displayOrder: idx,
+      isActive: true,
+    }));
 
-  // Otomatis buat banner dari mobil aktif yang memiliki bannerImage
+  const activeFlyers = flyers.length > 0 ? flyers : fallbackFlyers;
+
+  // Otomatis buat banner dari mobil aktif yang memiliki bannerImage atau bannerImageMobile
   const carBanners: Banner[] = allCars
-    .filter((car) => Boolean(car.bannerImage && car.bannerImage.trim() !== ''))
+    .filter((car) =>
+      Boolean(
+        (car.bannerImage && car.bannerImage.trim() !== '') ||
+          (car.bannerImageMobile && car.bannerImageMobile.trim() !== '')
+      )
+    )
     .map((car) => {
       const subtitle = car.promoLabel
         ? `${car.promoLabel} • OTR Batam Mulai ${formatRupiah(car.startingPrice)}`
@@ -113,7 +162,8 @@ export default async function HomePage() {
         subtitle,
         ctaText: 'Lihat Detail Unit',
         ctaUrl: `/mobil/${car.slug}`,
-        imageUrl: car.bannerImage as string,
+        imageUrl: (car.bannerImage || car.bannerImageMobile) as string,
+        imageUrlMobile: car.bannerImageMobile || null,
       };
     });
 
@@ -127,28 +177,10 @@ export default async function HomePage() {
       {/* ── 1. Hero Slider (Event Banners + Mobil Banners) ── */}
       <HeroSlider banners={combinedBanners} />
 
-      {/* ── 2. Section Promo ───────────────────────────── */}
-      {promoCars.length > 0 && (
-        <section id="promo" className="py-10 md:py-14 bg-white">
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="text-center mb-6 sm:mb-8">
-              <h2 className="text-gray-900 text-xl sm:text-2xl md:text-3xl font-bold">
-                Promo Bulan Ini
-              </h2>
-              <p className="text-gray-500 mt-1 text-xs sm:text-sm">
-                Penawaran terbaik Toyota untuk Anda di Batam
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">
-              {promoCars.map((car) => (
-                <CarCard key={car.id} car={car} salesWhatsapp={salesWhatsapp} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      {/* ── 2. Section Flyer Promo & Paket Kredit (Menggantikan Promo Bulan Ini lama) ── */}
+      <PromoFlyerSection flyers={activeFlyers} salesWhatsapp={salesWhatsapp} />
 
-      {/* ── 3. Section Katalog dengan Tab Filter ───────── */}
+      {/* ── 3. Section Katalog dengan Tab Filter (Badge PROMO tetap tampil di kartu katalog) ── */}
       <section id="katalog" className="py-10 md:py-14 bg-gray-50">
         <CatalogSection cars={allCars} salesWhatsapp={salesWhatsapp} />
       </section>

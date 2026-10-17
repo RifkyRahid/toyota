@@ -49,6 +49,7 @@ export interface SerializedCarModel {
   category: CarCategory;
   heroImage: string;
   bannerImage?: string | null;
+  bannerImageMobile?: string | null;
   startingPrice: string; // BigInt → string
   isPromo: boolean;
   promoLabel: string | null;
@@ -93,6 +94,30 @@ export interface SiteSetting {
   updatedAt: string;
 }
 
+export interface PromoFlyerItem {
+  id: string;
+  mode: 'AUTO' | 'IMAGE';
+  theme: 'RED_WHITE' | 'DARK_LUXURY' | 'SILVER_SPORT';
+  title: string;
+  eventTag: string;
+  subtitle: string | null;
+  carSlug: string | null;
+  carImageUrl: string | null;
+  customImageUrl: string | null;
+  highlight1Label: string;
+  highlight1Value: string;
+  highlight2Label: string;
+  highlight2Value: string;
+  benefits: string[];
+  waCustomMessage: string | null;
+  viewCount: number;
+  waClickCount: number;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // ── API Response Helpers ──────────────────────────────────────
 
 export interface ApiSuccess<T = unknown> {
@@ -103,3 +128,4 @@ export interface ApiSuccess<T = unknown> {
 export interface ApiError {
   error: string;
 }
+

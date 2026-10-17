@@ -41,18 +41,18 @@ export default function Navbar({ salesWhatsapp, logoUrl }: NavbarProps) {
           : 'bg-white',
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 md:h-20 transition-all duration-300">
+      <div className="max-w-[1440px] mx-auto px-4 md:px-6">
+        <div className="flex items-center justify-between h-12 md:h-14 transition-all duration-300">
           {/* Logo */}
           <Link href="/" className="flex items-center shrink-0" onClick={handleLinkClick}>
             {logoUrl ? (
               <img
                 src={logoUrl}
                 alt="Logo"
-                className="h-11 sm:h-12 md:h-16 w-auto object-contain transition-all"
+                className="h-8 sm:h-9 md:h-10 w-auto object-contain transition-all"
               />
             ) : (
-              <span className="text-xl font-bold text-zinc-900 tracking-tight">
+              <span className="text-lg font-bold text-zinc-900 tracking-tight">
                 Agung Toyota
               </span>
             )}
@@ -64,7 +64,7 @@ export default function Navbar({ salesWhatsapp, logoUrl }: NavbarProps) {
               <Link
                 key={link.href}
                 href={link.href}
-                className="px-3 py-2 text-sm font-medium text-zinc-700 rounded-md hover:text-red-600 hover:bg-red-50 transition-colors"
+                className="px-3 py-1.5 text-sm font-medium text-zinc-700 rounded-md hover:text-red-600 hover:bg-red-50 transition-colors"
               >
                 {link.label}
               </Link>
@@ -78,7 +78,7 @@ export default function Navbar({ salesWhatsapp, logoUrl }: NavbarProps) {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackClickToWa({ source_button: 'NAVBAR' })}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-md transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-semibold rounded-md transition-colors shadow-sm"
             >
               Hubungi Sales
             </a>
@@ -87,12 +87,12 @@ export default function Navbar({ salesWhatsapp, logoUrl }: NavbarProps) {
           {/* Mobile hamburger */}
           <button
             type="button"
-            className="md:hidden p-2 rounded-md text-zinc-700 hover:text-red-600 hover:bg-red-50 transition-colors"
+            className="md:hidden p-1.5 rounded-md text-zinc-700 hover:text-red-600 hover:bg-red-50 transition-colors"
             aria-label={menuOpen ? 'Tutup menu' : 'Buka menu'}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((prev) => !prev)}
           >
-            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>

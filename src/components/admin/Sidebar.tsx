@@ -8,6 +8,7 @@ import {
   Layers,
   Users,
   Image as ImageIcon,
+  Sparkles,
   FileText,
   Settings,
   ShieldCheck,
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { label: 'Bulk Price', href: '/admin/bulk-price', icon: Layers },
   { label: 'Prospek Leads', href: '/admin/leads', icon: Users },
   { label: 'Hero Banner', href: '/admin/banner', icon: ImageIcon },
+  { label: 'Flyer Promo', href: '/admin/flyer', icon: Sparkles },
   { label: 'Blog & Promo', href: '/admin/blog', icon: FileText },
   { label: 'Pengaturan Diler', href: '/admin/settings', icon: Settings },
 ];

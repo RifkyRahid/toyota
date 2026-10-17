@@ -55,6 +55,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       category,
       heroImage,
       bannerImage,
+      bannerImageMobile,
       startingPrice,
       isPromo,
       promoLabel,
@@ -79,6 +80,9 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     }
     if (bannerImage !== undefined && bannerImage !== existing.bannerImage && existing.bannerImage) {
       await deleteUploadedFile(existing.bannerImage);
+    }
+    if (bannerImageMobile !== undefined && bannerImageMobile !== existing.bannerImageMobile && existing.bannerImageMobile) {
+      await deleteUploadedFile(existing.bannerImageMobile);
     }
     if (brochurePdfUrl !== undefined && brochurePdfUrl !== existing.brochurePdfUrl && existing.brochurePdfUrl) {
       await deleteUploadedFile(existing.brochurePdfUrl);
@@ -153,6 +157,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
           ...(category && { category }),
           ...(heroImage && { heroImage }),
           ...(bannerImage !== undefined && { bannerImage: bannerImage || null }),
+          ...(bannerImageMobile !== undefined && { bannerImageMobile: bannerImageMobile || null }),
           ...(finalStartingPrice !== undefined && {
             startingPrice: finalStartingPrice,
           }),
@@ -208,6 +213,9 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
     await deleteUploadedFile(existing.heroImage);
     if (existing.bannerImage) {
       await deleteUploadedFile(existing.bannerImage);
+    }
+    if (existing.bannerImageMobile) {
+      await deleteUploadedFile(existing.bannerImageMobile);
     }
     if (existing.brochurePdfUrl) {
       await deleteUploadedFile(existing.brochurePdfUrl);

@@ -49,6 +49,7 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [uploadingHero, setUploadingHero] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingBannerMobile, setUploadingBannerMobile] = useState(false);
 
   // Model fields
   const [name, setName] = useState(initialData?.name || '');
@@ -56,6 +57,9 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
   const [category, setCategory] = useState(initialData?.category || 'MPV');
   const [heroImage, setHeroImage] = useState(initialData?.heroImage || '');
   const [bannerImage, setBannerImage] = useState(initialData?.bannerImage || '');
+  const [bannerImageMobile, setBannerImageMobile] = useState(
+    initialData?.bannerImageMobile || ''
+  );
   const [startingPrice, setStartingPrice] = useState(initialData?.startingPrice || '');
   const [isPromo, setIsPromo] = useState(initialData?.isPromo ?? false);
   const [promoLabel, setPromoLabel] = useState(initialData?.promoLabel || '');
@@ -160,12 +164,43 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
 
       const { url } = await res.json();
       setBannerImage(url);
-      toast.success('Banner hero mobil berhasil diunggah.');
+      toast.success('Banner hero desktop berhasil diunggah.');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Gagal upload banner mobil';
       toast.error(message);
     } finally {
       setUploadingBanner(false);
+    }
+  };
+
+  const handleBannerMobileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingBannerMobile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('context', 'banner');
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Upload banner mobile gagal');
+      }
+
+      const { url } = await res.json();
+      setBannerImageMobile(url);
+      toast.success('Banner hero mobile (potret) berhasil diunggah.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Gagal upload banner mobile';
+      toast.error(message);
+    } finally {
+      setUploadingBannerMobile(false);
     }
   };
 
@@ -197,6 +232,8 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Gagal upload foto varian';
       toast.error(message);
+    } finally {
+      setUploadingHero(false);
     }
   };
 
@@ -256,6 +293,7 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
       category,
       heroImage,
       bannerImage: bannerImage || null,
+      bannerImageMobile: bannerImageMobile || null,
       startingPrice: startingPrice ? Number(startingPrice) : undefined,
       isPromo,
       promoLabel: isPromo ? promoLabel : null,
@@ -456,15 +494,15 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
             </div>
           </div>
 
-          {/* 2. Banner Hero Landscape */}
+          {/* 2. Banner Hero Desktop (Landscape) */}
           <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200">
             <div className="flex items-start justify-between gap-2 mb-2">
               <div>
                 <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider">
-                  2. Banner Hero Model Mobil (Landscape Lebar) <span className="text-xs font-normal text-gray-400 lowercase">(opsional)</span>
+                  2. Banner Hero Desktop (Landscape Lebar) <span className="text-xs font-normal text-gray-400 lowercase">(opsional)</span>
                 </label>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Foto suasana/lifestyle mobil rasio lebar (16:9 / 21:9) yang tampil <strong>full-width di bagian atas halaman detail mobil</strong> (seperti referensi situs resmi Toyota Astra).
+                  Poster widescreen (rasio 16:9 / 21:9) untuk tampilan <strong>Layar Desktop/Laptop</strong> di slider beranda &amp; halaman detail unit.
                 </p>
               </div>
               {bannerImage && (
@@ -483,18 +521,18 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
                 {bannerImage ? (
                   <img
                     src={bannerImage}
-                    alt="Preview Banner Hero"
+                    alt="Preview Banner Hero Desktop"
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-xs text-gray-400 text-center px-2">Belum ada banner (menggunakan foto utama)</span>
+                  <span className="text-xs text-gray-400 text-center px-2">Belum ada banner desktop</span>
                 )}
               </div>
 
               <div className="flex-1 w-full">
                 <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg border border-gray-200 shadow-xs transition-colors">
                   <Upload size={14} />
-                  <span>{uploadingBanner ? 'Mengunggah...' : 'Pilih & Upload Banner Mobil'}</span>
+                  <span>{uploadingBanner ? 'Mengunggah...' : 'Pilih & Upload Banner Desktop'}</span>
                   <input
                     type="file"
                     onChange={handleBannerUpload}
@@ -507,7 +545,65 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
                   type="text"
                   value={bannerImage}
                   onChange={(e) => setBannerImage(e.target.value)}
-                  placeholder="/uploads/nama-banner.webp"
+                  placeholder="/uploads/nama-banner-desktop.webp"
+                  className="w-full mt-2 px-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs font-mono text-gray-700"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Banner Hero Mobile (Portrait) */}
+          <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div>
+                <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider">
+                  3. Banner Hero Mobile (Portrait / Vertikal Khusus HP) <span className="text-xs font-normal text-gray-400 lowercase">(opsional)</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Poster vertikal (rasio 9:16 atau 3:4, seperti standar Toyota Astra) agar tampil <strong>penuh 1 layar HP (Full-Screen Mobile)</strong>. Jika dikosongkan, otomatis memakai banner desktop.
+                </p>
+              </div>
+              {bannerImageMobile && (
+                <button
+                  type="button"
+                  onClick={() => setBannerImageMobile('')}
+                  className="text-xs text-red-600 hover:text-red-700 font-medium shrink-0"
+                >
+                  Hapus Banner Mobile
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-4 mt-3">
+              <div className="w-24 h-36 bg-gray-900 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+                {bannerImageMobile ? (
+                  <img
+                    src={bannerImageMobile}
+                    alt="Preview Banner Hero Mobile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-[11px] text-gray-400 text-center px-1.5 leading-tight">Belum ada banner HP</span>
+                )}
+              </div>
+
+              <div className="flex-1 w-full">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg border border-gray-200 shadow-xs transition-colors">
+                  <Upload size={14} />
+                  <span>{uploadingBannerMobile ? 'Mengunggah...' : 'Pilih & Upload Banner Mobile (Potret)'}</span>
+                  <input
+                    type="file"
+                    onChange={handleBannerMobileUpload}
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={uploadingBannerMobile}
+                  />
+                </label>
+                <input
+                  type="text"
+                  value={bannerImageMobile}
+                  onChange={(e) => setBannerImageMobile(e.target.value)}
+                  placeholder="/uploads/nama-banner-mobile.webp"
                   className="w-full mt-2 px-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs font-mono text-gray-700"
                 />
               </div>

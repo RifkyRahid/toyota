@@ -16,6 +16,9 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     if (existing && body.imageUrl && body.imageUrl !== existing.imageUrl) {
       await deleteUploadedFile(existing.imageUrl);
     }
+    if (existing && body.imageUrlMobile !== undefined && body.imageUrlMobile !== existing.imageUrlMobile && existing.imageUrlMobile) {
+      await deleteUploadedFile(existing.imageUrlMobile);
+    }
 
     const banner = await prisma.banner.update({
       where: { id },
@@ -39,6 +42,9 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
 
     if (existing?.imageUrl) {
       await deleteUploadedFile(existing.imageUrl);
+    }
+    if (existing?.imageUrlMobile) {
+      await deleteUploadedFile(existing.imageUrlMobile);
     }
 
     revalidatePath('/');

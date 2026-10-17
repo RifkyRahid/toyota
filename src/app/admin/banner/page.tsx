@@ -15,6 +15,7 @@ export default async function AdminBannerPage() {
     ctaText: b.ctaText,
     ctaUrl: b.ctaUrl,
     imageUrl: b.imageUrl,
+    imageUrlMobile: b.imageUrlMobile,
     displayOrder: b.displayOrder,
     isActive: b.isActive,
   }));
