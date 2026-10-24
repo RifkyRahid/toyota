@@ -8,6 +8,11 @@ export async function middleware(request: NextRequest) {
 
   // ── 1. Proteksi Halaman /admin/* ──────────────────────────────
   if (pathname.startsWith('/admin')) {
+    // Biarkan /admin (tanpa sub-path) menampilkan halaman 404 agar pintu login tidak langsung terekspos
+    if (pathname === '/admin') {
+      return NextResponse.next();
+    }
+
     const sessionToken = request.cookies.get(COOKIE_NAME)?.value;
     const session = sessionToken ? await verifySessionToken(sessionToken) : null;
 
