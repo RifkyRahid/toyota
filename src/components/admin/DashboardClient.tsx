@@ -428,11 +428,6 @@ export default function DashboardClient({
                     <td className="py-3 px-4 font-bold text-gray-400">#{idx + 1}</td>
                     <td className="py-3 px-4 font-semibold text-gray-900">
                       {car.name}
-                      {car.isPromo && (
-                        <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 font-bold rounded">
-                          PROMO
-                        </span>
-                      )}
                     </td>
                     <td className="py-3 px-4">{car.category}</td>
                     <td className="py-3 px-4 font-bold text-red-600">

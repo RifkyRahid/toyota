@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
+import { ensureDefaultPromoFlyer, DEFAULT_TUKAR_TAMBAH_FLYER } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,18 +9,20 @@ export const dynamic = 'force-dynamic';
 // Mengambil flyer promo terurut berdasarkan displayOrder asc
 export async function GET(req: NextRequest) {
   try {
+    await ensureDefaultPromoFlyer();
+
     const { searchParams } = req.nextUrl;
     const all = searchParams.get('all') === 'true';
 
     const flyers = await prisma.promoFlyer.findMany({
       where: all ? {} : { isActive: true },
-      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+      orderBy: [{ isPopup: 'desc' }, { displayOrder: 'asc' }, { createdAt: 'desc' }],
     });
 
     return NextResponse.json(flyers);
   } catch (error) {
     console.error('[GET /api/flyers] Error:', error);
-    return NextResponse.json([], { status: 200 });
+    return NextResponse.json([DEFAULT_TUKAR_TAMBAH_FLYER], { status: 200 });
   }
 }
 
@@ -43,6 +46,7 @@ export async function POST(req: NextRequest) {
       benefits = [],
       waCustomMessage,
       displayOrder = 0,
+      isPopup = false,
       isActive = true,
     } = body;
 
@@ -67,6 +71,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (isPopup) {
+      await prisma.promoFlyer.updateMany({
+        where: { isPopup: true },
+        data: { isPopup: false },
+      });
+    }
+
     const flyer = await prisma.promoFlyer.create({
       data: {
         mode: mode === 'IMAGE' ? 'IMAGE' : 'AUTO',
@@ -86,11 +97,12 @@ export async function POST(req: NextRequest) {
           : [],
         waCustomMessage: waCustomMessage?.trim() || null,
         displayOrder: Number(displayOrder) || 0,
+        isPopup: Boolean(isPopup),
         isActive: Boolean(isActive),
       },
     });
 
-    revalidatePath('/');
+    revalidatePath('/', 'layout');
     revalidatePath('/admin/flyer');
     revalidatePath('/admin/dashboard');
 

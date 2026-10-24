@@ -61,9 +61,6 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
     initialData?.bannerImageMobile || ''
   );
   const [startingPrice, setStartingPrice] = useState(initialData?.startingPrice || '');
-  const [isPromo, setIsPromo] = useState(initialData?.isPromo ?? false);
-  const [promoLabel, setPromoLabel] = useState(initialData?.promoLabel || '');
-  const [brochurePdfUrl, setBrochurePdfUrl] = useState(initialData?.brochurePdfUrl || '');
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
 
   // Variants list
@@ -295,9 +292,6 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
       bannerImage: bannerImage || null,
       bannerImageMobile: bannerImageMobile || null,
       startingPrice: startingPrice ? Number(startingPrice) : undefined,
-      isPromo,
-      promoLabel: isPromo ? promoLabel : null,
-      brochurePdfUrl: brochurePdfUrl || null,
       isActive,
       variants: variants.map((v) => ({
         name: v.name,
@@ -611,50 +605,9 @@ export default function CarForm({ initialData, isEdit = false }: CarFormProps) {
           </div>
         </div>
 
-        {/* Promo Settings */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-3 border-t border-gray-100">
+        {/* Active status */}
+        <div className="pt-3 border-t border-gray-100">
           <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="isPromo"
-              checked={isPromo}
-              onChange={(e) => setIsPromo(e.target.checked)}
-              className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-            />
-            <label htmlFor="isPromo" className="text-sm font-semibold text-gray-800 cursor-pointer">
-              Tandai sebagai Unit Promo (Tampil di Beranda)
-            </label>
-          </div>
-
-          {isPromo && (
-            <div>
-              <input
-                type="text"
-                value={promoLabel}
-                onChange={(e) => setPromoLabel(e.target.value)}
-                placeholder="Label Promo (misal: PROMO DP RINGAN)"
-                className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Brochure URL & Active status */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-3 border-t border-gray-100">
-          <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-              Tautan Brosur PDF (Opsional)
-            </label>
-            <input
-              type="text"
-              value={brochurePdfUrl}
-              onChange={(e) => setBrochurePdfUrl(e.target.value)}
-              placeholder="https://... / brosur-avanza.pdf"
-              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all"
-            />
-          </div>
-
-          <div className="flex items-center gap-3 pt-6">
             <input
               type="checkbox"
               id="isActive"

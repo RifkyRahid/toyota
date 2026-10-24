@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import type { SerializedCarModel, SerializedCarVariant, SiteSetting } from '@/types';
+import type { SerializedCarModel, SerializedCarVariant, SiteSetting, PromoFlyerItem } from '@/types';
 
 // Default fallback settings jika database belum ada data
 export const DEFAULT_SITE_SETTINGS: SiteSetting = {
@@ -7,12 +7,12 @@ export const DEFAULT_SITE_SETTINGS: SiteSetting = {
   dealershipName: 'Agung Toyota Batam',
   dealershipAddress: 'Jl. Yos Sudarso, Batu Ampar, Kota Batam, Kepulauan Riau',
   googleMapsUrl: null,
-  salesName: 'Official Sales Representative',
-  salesTitle: 'Certified Sales Executive',
-  salesPhone: '081234567890',
-  salesWhatsapp: '6281234567890',
+  salesName: 'Lidya Toyota',
+  salesTitle: 'Sales Resmi Agung Toyota Batam',
+  salesPhone: '0853-5574-6543',
+  salesWhatsapp: '6285355746543',
   salesPhotoUrl: '/images/sales-default.webp',
-  salesBio: 'Siap melayani konsultasi pembelian mobil Toyota OTR Batam. Pelayanan profesional, transparan, cepat, dan terpercaya.',
+  salesBio: 'Siap melayani konsultasi pembelian & tukar tambah mobil Toyota OTR Batam. Pelayanan profesional, transparan, cepat, dan terpercaya.',
   headerLogoUrl: '/images/toyota-logo.webp',
   footerLogoUrl: '/images/toyota-logo-white.webp',
   faviconUrl: '/favicon.ico',
@@ -21,6 +21,37 @@ export const DEFAULT_SITE_SETTINGS: SiteSetting = {
   facebookUrl: null,
   tiktokUrl: null,
   updatedAt: new Date().toISOString(),
+};
+
+export const DEFAULT_TUKAR_TAMBAH_FLYER: PromoFlyerItem = {
+  id: 'default-tukar-tambah-batam',
+  mode: 'IMAGE',
+  theme: 'RED_WHITE',
+  title: 'Promo Tukar Tambah Mobil - Agung Toyota Batam',
+  eventTag: 'PROMO TOYOTA BULAN INI',
+  subtitle: 'DP Ringan • Cicilan Super Ringan & Fleksibel • Diskon hingga Puluhan Juta',
+  carSlug: null,
+  carImageUrl: null,
+  customImageUrl: '/images/promo-tukar-tambah-batam.jpg',
+  highlight1Label: 'Program Spesial',
+  highlight1Value: 'Tukar Tambah',
+  highlight2Label: 'Diskon Menarik',
+  highlight2Value: 'Puluhan Juta',
+  benefits: [
+    'DP Ringan',
+    'Cicilan Super Ringan & Fleksibel',
+    'Diskon Menarik hingga Puluhan Juta',
+    'Bonus Aksesoris & Paket Servis',
+    'Proses Cepat & Mudah',
+    'Terima Tukar Tambah Mobil Lama',
+  ],
+  waCustomMessage:
+    'Halo Lidya Agung Toyota Batam, saya tertarik klaim Promo Tukar Tambah Mobil Bulan Ini. Mohon info harga & simulasi kreditnya.',
+  viewCount: 0,
+  waClickCount: 0,
+  displayOrder: 0,
+  isPopup: true,
+  isActive: true,
 };
 
 export interface SerializedBlog {
@@ -185,4 +216,108 @@ export async function getBlogBySlug(slug: string): Promise<SerializedBlog | null
     return null;
   }
 }
+
+/**
+ * Memastikan poster default "Promo Tukar Tambah Mobil - Agung Toyota Batam"
+ * sudah terdaftar di tabel promo_flyers (hanya dibuat 1x jika belum pernah ada).
+ */
+export async function ensureDefaultPromoFlyer(): Promise<void> {
+  try {
+    // Pastikan kolom isPopup sudah ada di tabel promo_flyers (auto-migrate aman)
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "promo_flyers" ADD COLUMN IF NOT EXISTS "isPopup" BOOLEAN NOT NULL DEFAULT false;`
+    );
+
+    const existing = await prisma.promoFlyer.findFirst({
+      where: {
+        OR: [
+          { customImageUrl: '/images/promo-tukar-tambah-batam.jpg' },
+          { customImageUrl: '/uploads/promo-tukar-tambah-batam.jpg' },
+          { isPopup: true },
+        ],
+      },
+    });
+
+    if (!existing) {
+      await prisma.promoFlyer.create({
+        data: {
+          mode: 'IMAGE',
+          theme: 'RED_WHITE',
+          title: DEFAULT_TUKAR_TAMBAH_FLYER.title,
+          eventTag: DEFAULT_TUKAR_TAMBAH_FLYER.eventTag,
+          subtitle: DEFAULT_TUKAR_TAMBAH_FLYER.subtitle,
+          customImageUrl: '/images/promo-tukar-tambah-batam.jpg',
+          highlight1Label: DEFAULT_TUKAR_TAMBAH_FLYER.highlight1Label,
+          highlight1Value: DEFAULT_TUKAR_TAMBAH_FLYER.highlight1Value,
+          highlight2Label: DEFAULT_TUKAR_TAMBAH_FLYER.highlight2Label,
+          highlight2Value: DEFAULT_TUKAR_TAMBAH_FLYER.highlight2Value,
+          benefits: DEFAULT_TUKAR_TAMBAH_FLYER.benefits,
+          waCustomMessage: DEFAULT_TUKAR_TAMBAH_FLYER.waCustomMessage,
+          displayOrder: 0,
+          isPopup: true,
+          isActive: true,
+        },
+      });
+    }
+  } catch {
+    // Abaikan jika DB belum siap saat build time
+  }
+}
+
+/**
+ * Mengambil seluruh Flyer Promo yang aktif untuk ditampilkan di Beranda
+ */
+export async function getActiveFlyers(): Promise<PromoFlyerItem[]> {
+  try {
+    await ensureDefaultPromoFlyer();
+
+    const flyers = await prisma.promoFlyer.findMany({
+      where: { isActive: true },
+      orderBy: [{ isPopup: 'desc' }, { displayOrder: 'asc' }, { createdAt: 'desc' }],
+    });
+
+    return flyers.map((f) => ({
+      ...f,
+      mode: f.mode === 'IMAGE' ? 'IMAGE' : 'AUTO',
+      theme: (['RED_WHITE', 'DARK_LUXURY', 'SILVER_SPORT'].includes(f.theme)
+        ? f.theme
+        : 'RED_WHITE') as 'RED_WHITE' | 'DARK_LUXURY' | 'SILVER_SPORT',
+      createdAt: f.createdAt.toISOString(),
+      updatedAt: f.updatedAt.toISOString(),
+    }));
+  } catch (error) {
+    console.error('[getActiveFlyers] Fallback to default poster:', error);
+    return [DEFAULT_TUKAR_TAMBAH_FLYER];
+  }
+}
+
+/**
+ * Mengambil Flyer yang ditandai sebagai Popup Utama (isPopup: true & isActive: true)
+ */
+export async function getActivePopupFlyer(): Promise<PromoFlyerItem | null> {
+  try {
+    await ensureDefaultPromoFlyer();
+
+    const popupFlyer = await prisma.promoFlyer.findFirst({
+      where: { isActive: true, isPopup: true },
+      orderBy: [{ displayOrder: 'asc' }, { updatedAt: 'desc' }],
+    });
+
+    if (!popupFlyer) return null;
+
+    return {
+      ...popupFlyer,
+      mode: popupFlyer.mode === 'IMAGE' ? 'IMAGE' : 'AUTO',
+      theme: (['RED_WHITE', 'DARK_LUXURY', 'SILVER_SPORT'].includes(popupFlyer.theme)
+        ? popupFlyer.theme
+        : 'RED_WHITE') as 'RED_WHITE' | 'DARK_LUXURY' | 'SILVER_SPORT',
+      createdAt: popupFlyer.createdAt.toISOString(),
+      updatedAt: popupFlyer.updatedAt.toISOString(),
+    };
+  } catch (error) {
+    console.error('[getActivePopupFlyer] Fallback to default poster:', error);
+    return DEFAULT_TUKAR_TAMBAH_FLYER;
+  }
+}
+
 

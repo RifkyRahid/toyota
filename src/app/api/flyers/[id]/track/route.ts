@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,7 @@ interface RouteContext {
  * Body: { action: 'VIEW' | 'WA_CLICK' | 'RESET' }
  * - VIEW: tambah viewCount + 1 (saat pengunjung klik perbesar / Lightbox Preview)
  * - WA_CLICK: tambah waClickCount + 1 (saat pengunjung klik tombol Klaim Promo via WA)
- * - RESET: reset viewCount = 0 dan waClickCount = 0
+ * - RESET: reset viewCount = 0 dan waClickCount = 0 (Wajib sesi Admin)
  */
 export async function POST(req: NextRequest, { params }: RouteContext) {
   try {
@@ -26,6 +27,14 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     }
 
     if (action === 'RESET') {
+      const session = await getSession();
+      if (!session) {
+        return NextResponse.json(
+          { error: 'Akses ditolak. Hanya admin yang dapat mereset statistik.' },
+          { status: 401 }
+        );
+      }
+
       const updated = await prisma.promoFlyer.update({
         where: { id },
         data: { viewCount: 0, waClickCount: 0 },
@@ -52,4 +61,5 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ success: false }, { status: 200 });
   }
 }
+
 

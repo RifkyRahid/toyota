@@ -44,10 +44,11 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
  */
 export async function setSessionCookie(token: string): Promise<void> {
   const cookieStore = await cookies();
+  const isHttps = process.env.NEXT_PUBLIC_BASE_URL?.startsWith('https://') ?? false;
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production' && isHttps,
+    sameSite: 'lax',
     path: '/',
     maxAge: 12 * 60 * 60, // 12 hours
   });
@@ -58,10 +59,11 @@ export async function setSessionCookie(token: string): Promise<void> {
  */
 export async function clearSessionCookie(): Promise<void> {
   const cookieStore = await cookies();
+  const isHttps = process.env.NEXT_PUBLIC_BASE_URL?.startsWith('https://') ?? false;
   cookieStore.set(COOKIE_NAME, '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production' && isHttps,
+    sameSite: 'lax',
     path: '/',
     maxAge: 0,
   });

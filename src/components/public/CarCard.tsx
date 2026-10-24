@@ -46,20 +46,6 @@ export default function CarCard({ car, salesWhatsapp }: CarCardProps) {
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           />
         </div>
-
-        {/* PROMO badge */}
-        {car.isPromo && (
-          <div className="absolute top-2.5 left-2.5 flex flex-col items-start gap-1 z-10">
-            <span className="bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shadow-xs">
-              PROMO
-            </span>
-            {car.promoLabel && (
-              <span className="bg-red-600/90 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded shadow-xs">
-                {car.promoLabel}
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
       {/* ── Info section ── */}

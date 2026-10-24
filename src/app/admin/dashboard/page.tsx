@@ -2,10 +2,13 @@ import { prisma } from '@/lib/prisma';
 import DashboardClient from '@/components/admin/DashboardClient';
 import type { Lead } from '@prisma/client';
 import { getSession } from '@/lib/auth';
+import { ensureDefaultPromoFlyer } from '@/lib/data';
 
 export const revalidate = 0; // Dynamic server component
 
 export default async function AdminDashboardPage() {
+  await ensureDefaultPromoFlyer();
+
   const [session, carModels, allLeadsRaw, ctaClicksRaw, promoFlyersRaw] = await Promise.all([
     getSession(),
     prisma.carModel.findMany({
@@ -19,9 +22,11 @@ export default async function AdminDashboardPage() {
       select: { carName: true, buttonType: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     }),
-    prisma.promoFlyer.findMany({
-      orderBy: [{ waClickCount: 'desc' }, { viewCount: 'desc' }, { displayOrder: 'asc' }],
-    }),
+    prisma.promoFlyer
+      .findMany({
+        orderBy: [{ waClickCount: 'desc' }, { viewCount: 'desc' }, { displayOrder: 'asc' }],
+      })
+      .catch(() => []),
   ]);
 
   const isSuperadmin = session?.role === 'SUPERADMIN';

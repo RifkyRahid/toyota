@@ -37,21 +37,21 @@ export function FlyerPosterCanvas({
       ? flyer.benefits
       : ['Bunga 0%', 'Cash Bertahap 50:50', 'Gratis Aksesoris', 'Trade-In All Brand'];
 
-  // Opsi 1: Mode Upload Gambar Poster Siap Pakai (Canva / Photoshop)
+  // Opsi 1: Mode Upload Gambar Poster Siap Pakai (Tampil 100% Utuh Tanpa Terpotong)
   if (mode === 'IMAGE') {
     return (
-      <div className="relative w-full aspect-[4/5] bg-zinc-900 overflow-hidden select-none">
+      <div className="relative w-full bg-zinc-900 overflow-hidden select-none flex items-center justify-center">
         {flyer.customImageUrl ? (
           <img
             src={flyer.customImageUrl}
             alt={`${title} - ${eventTag}`}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            className="w-full h-auto block object-contain transition-transform duration-500 group-hover:scale-[1.02]"
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-zinc-400 p-6 text-center">
+          <div className="w-full aspect-[4/5] flex flex-col items-center justify-center text-zinc-400 p-6 text-center">
             <Sparkles size={32} className="mb-2 text-red-500 opacity-70" />
             <p className="text-xs font-semibold">Belum ada gambar poster diunggah</p>
-            <p className="text-[11px] text-zinc-500 mt-1">Rekomendasi rasio 4:5 (1080x1350 px)</p>
+            <p className="text-[11px] text-zinc-500 mt-1">Poster akan tampil utuh sesuai rasio aslinya</p>
           </div>
         )}
       </div>

@@ -26,12 +26,20 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       await deleteUploadedFile(existing.customImageUrl);
     }
 
+    // Jika flyer ini dijadikan Popup Utama, nonaktifkan isPopup pada flyer lainnya
+    if (body.isPopup === true) {
+      await prisma.promoFlyer.updateMany({
+        where: { id: { not: id }, isPopup: true },
+        data: { isPopup: false },
+      });
+    }
+
     const updated = await prisma.promoFlyer.update({
       where: { id },
       data: body,
     });
 
-    revalidatePath('/');
+    revalidatePath('/', 'layout');
     revalidatePath('/admin/flyer');
     revalidatePath('/admin/dashboard');
 

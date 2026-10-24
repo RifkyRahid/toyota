@@ -124,13 +124,6 @@ export default async function CarDetailPage({ params }: Props) {
               </span>
             </p>
           </div>
-          {car.isPromo && car.promoLabel && (
-            <div className="shrink-0 self-start md:self-auto">
-              <span className="inline-block bg-red-600 text-white text-xs sm:text-sm font-bold px-3 py-1 sm:px-4 sm:py-1.5 rounded-full shadow-xs">
-                {car.promoLabel}
-              </span>
-            </div>
-          )}
         </div>
       </section>
 

@@ -4,19 +4,36 @@ import { LeadStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
+// ── Rate Limiter untuk Form Lead Publik (Anti-Spam Bot) ───────
+const leadRateMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkLeadRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = leadRateMap.get(ip);
+  if (!entry || entry.resetAt < now) {
+    leadRateMap.set(ip, { count: 1, resetAt: now + 10 * 60 * 1000 }); // 10 menit
+    return true;
+  }
+  if (entry.count >= 5) {
+    return false;
+  }
+  entry.count += 1;
+  return true;
+}
+
 // ── POST /api/leads ───────────────────────────────────────────
 // Endpoint publik: menerima data prospek dari form Lead Gate.
-// Tidak memerlukan autentikasi.
-//
-// Body (JSON):
-// {
-//   name: string,           -- Nama calon pembeli (wajib)
-//   whatsapp: string,       -- Nomor WA format 08xx atau 628xx (wajib)
-//   carInterest?: string,   -- Unit yang diminati
-//   sourcePage?: string,    -- URL halaman asal form di-submit
-// }
+// Tidak memerlukan autentikasi, dilengkapi rate-limit anti-spam.
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
+    if (!checkLeadRateLimit(ip)) {
+      return NextResponse.json(
+        { error: 'Terlalu banyak pengiriman formulir. Silakan coba beberapa saat lagi.' },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { name, whatsapp, carInterest, sourcePage } = body;
 
@@ -28,9 +45,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const cleanWa = String(whatsapp).replace(/\s/g, '');
     // ── Validasi format nomor WA ────────────────────────────
     const waPattern = /^(08|628)\d{7,12}$/;
-    if (!waPattern.test(whatsapp.replace(/\s/g, ''))) {
+    if (!waPattern.test(cleanWa)) {
       return NextResponse.json(
         {
           error:
@@ -42,10 +60,10 @@ export async function POST(req: NextRequest) {
 
     const lead = await prisma.lead.create({
       data: {
-        name: name.trim(),
-        whatsapp: whatsapp.trim(),
-        carInterest: carInterest?.trim() ?? null,
-        sourcePage: sourcePage?.trim() ?? null,
+        name: String(name).trim().slice(0, 100),
+        whatsapp: cleanWa.slice(0, 20),
+        carInterest: carInterest ? String(carInterest).trim().slice(0, 100) : null,
+        sourcePage: sourcePage ? String(sourcePage).trim().slice(0, 200) : null,
         status: 'BARU',
       },
     });

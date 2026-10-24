@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit3, Trash2, Tag, Car, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit3, Trash2, Car, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatRupiah } from '@/lib/format';
 import type { SerializedCarModel } from '@/types';
@@ -90,7 +90,7 @@ export default function KatalogListClient({ cars: initialCars }: KatalogListClie
             Katalog Unit Mobil
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Kelola model kendaraan, tipe varian, harga dasar OTR Batam, dan badge promo.
+            Kelola model kendaraan, tipe varian, dan harga dasar OTR Batam.
           </p>
         </div>
 
@@ -112,7 +112,6 @@ export default function KatalogListClient({ cars: initialCars }: KatalogListClie
                 <th className="py-3.5 px-4">Mobil</th>
                 <th className="py-3.5 px-4">Kategori</th>
                 <th className="py-3.5 px-4">Harga OTR Mulai</th>
-                <th className="py-3.5 px-4">Status Promo</th>
                 <th className="py-3.5 px-4">Status Tayang</th>
                 <th className="py-3.5 px-4 text-right">Aksi</th>
               </tr>
@@ -148,17 +147,6 @@ export default function KatalogListClient({ cars: initialCars }: KatalogListClie
 
                   <td className="py-3.5 px-4 font-bold text-red-600">
                     {formatRupiah(car.startingPrice)}
-                  </td>
-
-                  <td className="py-3.5 px-4">
-                    {car.isPromo ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
-                        <Tag size={12} />
-                        <span>{car.promoLabel || 'PROMO'}</span>
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-400 font-medium">Bukan Promo</span>
-                    )}
                   </td>
 
                   <td className="py-3.5 px-4">
@@ -224,7 +212,7 @@ export default function KatalogListClient({ cars: initialCars }: KatalogListClie
 
               {cars.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-gray-400">
+                  <td colSpan={5} className="py-12 text-center text-gray-400">
                     Belum ada mobil terdaftar. Klik &quot;Tambah Unit Mobil&quot; untuk menambahkan.
                   </td>
                 </tr>

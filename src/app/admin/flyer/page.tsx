@@ -1,30 +1,40 @@
 import { prisma } from '@/lib/prisma';
 import FlyerClient, { type CatalogCarOption } from '@/components/admin/FlyerClient';
 import type { PromoFlyerItem } from '@/types';
+import { ensureDefaultPromoFlyer, DEFAULT_TUKAR_TAMBAH_FLYER } from '@/lib/data';
 
 export const revalidate = 0;
 
 export default async function AdminFlyerPage() {
+  await ensureDefaultPromoFlyer();
+
   const [flyersRaw, carsRaw] = await Promise.all([
-    prisma.promoFlyer.findMany({
-      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
-    }),
-    prisma.carModel.findMany({
-      where: { isActive: true },
-      orderBy: [{ isPromo: 'desc' }, { displayOrder: 'asc' }, { name: 'asc' }],
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        heroImage: true,
-        startingPrice: true,
-        promoLabel: true,
-        isPromo: true,
-      },
-    }),
+    prisma.promoFlyer
+      .findMany({
+        orderBy: [{ isPopup: 'desc' }, { displayOrder: 'asc' }, { createdAt: 'desc' }],
+      })
+      .catch(() => null),
+    prisma.carModel
+      .findMany({
+        where: { isActive: true },
+        orderBy: [{ isPromo: 'desc' }, { displayOrder: 'asc' }, { name: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          heroImage: true,
+          startingPrice: true,
+          promoLabel: true,
+          isPromo: true,
+        },
+      })
+      .catch(() => []),
   ]);
 
-  const formattedFlyers: PromoFlyerItem[] = flyersRaw.map((f) => ({
+  const formattedFlyers: PromoFlyerItem[] =
+    flyersRaw === null
+      ? [DEFAULT_TUKAR_TAMBAH_FLYER]
+      : flyersRaw.map((f) => ({
     id: f.id,
     mode: f.mode === 'IMAGE' ? 'IMAGE' : 'AUTO',
     theme: (['RED_WHITE', 'DARK_LUXURY', 'SILVER_SPORT'].includes(f.theme)
@@ -45,6 +55,7 @@ export default async function AdminFlyerPage() {
     viewCount: f.viewCount,
     waClickCount: f.waClickCount,
     displayOrder: f.displayOrder,
+    isPopup: f.isPopup,
     isActive: f.isActive,
     createdAt: f.createdAt.toISOString(),
     updatedAt: f.updatedAt.toISOString(),

@@ -16,7 +16,6 @@ import {
   MessageCircle,
   Trophy,
   RotateCcw,
-  Wand2,
   Info,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -53,7 +52,6 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
   const [flyers, setFlyers] = useState<PromoFlyerItem[]>(initialFlyers);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingFlyer, setEditingFlyer] = useState<PromoFlyerItem | null>(null);
-  const [importingPromo, setImportingPromo] = useState(false);
 
   // Form States
   const [mode, setMode] = useState<'AUTO' | 'IMAGE'>('AUTO');
@@ -77,6 +75,7 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
   const [benefitInput, setBenefitInput] = useState('');
   const [waCustomMessage, setWaCustomMessage] = useState('');
   const [displayOrder, setDisplayOrder] = useState(0);
+  const [isPopup, setIsPopup] = useState(false);
 
   const [uploadingCarImage, setUploadingCarImage] = useState(false);
   const [uploadingCustomImage, setUploadingCustomImage] = useState(false);
@@ -126,6 +125,7 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
     setBenefitInput('');
     setWaCustomMessage('');
     setDisplayOrder(flyers.length);
+    setIsPopup(flyers.length === 0);
     setModalOpen(true);
   };
 
@@ -151,6 +151,7 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
     setBenefitInput('');
     setWaCustomMessage(flyer.waCustomMessage || '');
     setDisplayOrder(flyer.displayOrder || 0);
+    setIsPopup(Boolean(flyer.isPopup));
     setModalOpen(true);
   };
 
@@ -261,6 +262,7 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
         benefits,
         waCustomMessage: waCustomMessage.trim() || null,
         displayOrder: Number(displayOrder) || 0,
+        isPopup,
       };
 
       if (editingFlyer) {
@@ -271,7 +273,13 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
         });
         if (!res.ok) throw new Error('Gagal memperbarui flyer');
         const updated = await res.json();
-        setFlyers((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
+        setFlyers((prev) =>
+          prev.map((f) => {
+            if (f.id === updated.id) return updated;
+            if (updated.isPopup) return { ...f, isPopup: false };
+            return f;
+          })
+        );
         toast.success('Flyer promo berhasil diperbarui.');
       } else {
         const res = await fetch('/api/flyers', {
@@ -281,7 +289,10 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
         });
         if (!res.ok) throw new Error('Gagal membuat flyer');
         const created = await res.json();
-        setFlyers((prev) => [...prev, created]);
+        setFlyers((prev) => [
+          ...(created.isPopup ? prev.map((f) => ({ ...f, isPopup: false })) : prev),
+          created,
+        ]);
         toast.success('Flyer promo baru berhasil ditambahkan.');
       }
 
@@ -311,6 +322,37 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
       router.refresh();
     } catch {
       toast.error('Gagal mengubah status flyer.');
+    }
+  };
+
+  const togglePopup = async (flyer: PromoFlyerItem) => {
+    try {
+      const nextPopup = !flyer.isPopup;
+      const res = await fetch(`/api/flyers/${flyer.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isPopup: nextPopup,
+          ...(nextPopup ? { isActive: true } : {}),
+        }),
+      });
+      if (!res.ok) throw new Error('Gagal mengubah status popup');
+      const updated = await res.json();
+      setFlyers((prev) =>
+        prev.map((f) => {
+          if (f.id === updated.id) return updated;
+          if (nextPopup) return { ...f, isPopup: false };
+          return f;
+        })
+      );
+      toast.success(
+        nextPopup
+          ? `Flyer "${flyer.title}" dijadikan Popup Otomatis & Floating Mini-Poster utama!`
+          : `Popup Otomatis untuk "${flyer.title}" dinonaktifkan.`
+      );
+      router.refresh();
+    } catch {
+      toast.error('Gagal mengubah pengaturan Popup Utama.');
     }
   };
 
@@ -350,68 +392,6 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
     }
   };
 
-  // Fitur 1-Klik Generate Auto-Flyer dari Unit Promo di Katalog
-  const handleQuickImportFromPromoCars = async () => {
-    const promoCars = catalogCars.filter((c) => c.isPromo);
-    const sourceCars = promoCars.length > 0 ? promoCars : catalogCars.slice(0, 3);
-
-    if (sourceCars.length === 0) {
-      toast.error('Belum ada unit mobil di katalog untuk diimpor.');
-      return;
-    }
-
-    setImportingPromo(true);
-    try {
-      const themes: Array<'RED_WHITE' | 'DARK_LUXURY' | 'SILVER_SPORT'> = [
-        'RED_WHITE',
-        'DARK_LUXURY',
-        'SILVER_SPORT',
-      ];
-      const createdList: PromoFlyerItem[] = [];
-
-      for (let i = 0; i < Math.min(sourceCars.length, 6); i++) {
-        const car = sourceCars[i];
-        const res = await fetch('/api/flyers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mode: 'AUTO',
-            theme: themes[i % themes.length],
-            title: car.name,
-            eventTag: 'TOYOTA SPEKTAKULER',
-            subtitle: `OTR Batam Mulai ${formatRupiah(car.startingPrice)}`,
-            carSlug: car.slug,
-            carImageUrl: car.heroImage,
-            highlight1Label: 'Cicilan Mulai',
-            highlight1Value: car.promoLabel || '3 Jtan',
-            highlight2Label: 'DP Mulai',
-            highlight2Value: '15%',
-            benefits: [
-              'Bunga 0%',
-              'Cash Bertahap 50:50',
-              'Gratis Aksesoris',
-              'Trade-In All Brand',
-            ],
-            displayOrder: flyers.length + i,
-            isActive: true,
-          }),
-        });
-        if (res.ok) {
-          const item = await res.json();
-          createdList.push(item);
-        }
-      }
-
-      setFlyers((prev) => [...prev, ...createdList]);
-      toast.success(`${createdList.length} Auto-Flyer berhasil dibuat dari katalog unit!`);
-      router.refresh();
-    } catch {
-      toast.error('Gagal membuat flyer otomatis.');
-    } finally {
-      setImportingPromo(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* ── Header Halaman ── */}
@@ -426,23 +406,6 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {catalogCars.length > 0 && (
-            <button
-              type="button"
-              disabled={importingPromo}
-              onClick={handleQuickImportFromPromoCars}
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-xs sm:text-sm font-semibold rounded-lg transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
-              title="Buat Auto-Flyer otomatis dari unit mobil bertanda Promo di Katalog"
-            >
-              {importingPromo ? (
-                <Loader2 size={16} className="animate-spin text-red-600" />
-              ) : (
-                <Wand2 size={16} className="text-red-600" />
-              )}
-              <span>Generate dari Katalog Promo</span>
-            </button>
-          )}
-
           <button
             type="button"
             onClick={openCreateModal}
@@ -536,9 +499,7 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
             Belum Ada Flyer Promo Tersimpan
           </h3>
           <p className="text-xs text-gray-500 max-w-md mx-auto mt-1">
-            Saat ini halaman depan menampilkan fallback otomatis dari unit bertanda Promo. Klik{' '}
-            <strong>&ldquo;Generate dari Katalog Promo&rdquo;</strong> atau{' '}
-            <strong>&ldquo;Tambah Flyer Promo&rdquo;</strong> untuk mulai mengelola flyer dan merekam analitik klik.
+            Klik tombol <strong>&ldquo;Tambah Flyer Promo&rdquo;</strong> di kanan atas untuk membuat poster Auto-Flyer maupun mengunggah poster desain sendiri.
           </p>
         </div>
       ) : (
@@ -576,15 +537,22 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
                     )}
                   </span>
 
-                  <span
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase shadow-sm ${
-                      flyer.isActive
-                        ? 'bg-green-600 text-white'
-                        : 'bg-gray-600 text-white'
-                    }`}
-                  >
-                    {flyer.isActive ? 'Aktif' : 'Nonaktif'}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {flyer.isPopup && (
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-red-600 text-white shadow-sm flex items-center gap-1">
+                        <span>🔥 POPUP UTAMA</span>
+                      </span>
+                    )}
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase shadow-sm ${
+                        flyer.isActive
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-600 text-white'
+                      }`}
+                    >
+                      {flyer.isActive ? 'Aktif' : 'Nonaktif'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -593,7 +561,7 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
                 <div className="flex items-center gap-3">
                   <span
                     className="inline-flex items-center gap-1 font-semibold text-blue-700 bg-blue-50 border border-blue-200/80 px-2 py-0.5 rounded-md"
-                    title="Berapa kali gambar diperbesar (Lightbox Preview)"
+                    title="Berapa kali gambar diperbesar (Lightbox / Popup)"
                   >
                     <Eye size={13} />
                     <span>{flyer.viewCount || 0} Dilihat</span>
@@ -617,6 +585,24 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
                     <RotateCcw size={14} />
                   </button>
                 )}
+              </div>
+
+              {/* Tombol Pengaturan Popup Utama & Floating Mini-Poster */}
+              <div className="px-3.5 py-2.5 bg-red-50/50 border-t border-gray-100 flex items-center justify-between gap-2">
+                <span className="text-[11px] font-medium text-gray-600">
+                  Popup Otomatis &amp; Ikon Kiri Tengah:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => togglePopup(flyer)}
+                  className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                    flyer.isPopup
+                      ? 'bg-red-600 text-white border-red-600 shadow-xs'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-red-500 hover:text-red-600'
+                  }`}
+                >
+                  {flyer.isPopup ? '✓ Popup Utama Aktif' : 'Jadikan Popup Utama'}
+                </button>
               </div>
 
               {/* Tombol Aksi Admin */}
@@ -1054,6 +1040,24 @@ export default function FlyerClient({ initialFlyers, catalogCars }: FlyerClientP
                     />
                   </div>
                 </div>
+
+                {/* Opsi Jadikan Popup Utama */}
+                <label className="flex items-start gap-2.5 p-3 rounded-xl border border-red-200 bg-red-50/50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isPopup}
+                    onChange={(e) => setIsPopup(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-600"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-gray-900 block">
+                      🔥 Jadikan sebagai Popup Promo Otomatis &amp; Floating Mini-Poster (Kiri Tengah)
+                    </span>
+                    <span className="text-[11px] text-gray-600 block mt-0.5">
+                      Muncul otomatis 2 detik saat pengunjung membuka website (1x per sesi) dan menjadi ikon mini-poster mengambang di sisi kiri tengah layar.
+                    </span>
+                  </div>
+                </label>
 
                 {/* Tombol Simpan */}
                 <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">

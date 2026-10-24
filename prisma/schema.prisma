@@ -234,9 +234,10 @@ model PromoFlyer {
   highlight2Value String   @default("15%")
   benefits        String[] // Contoh: ["Bunga 0%", "Cash Bertahap 50:50", "Bonus Aksesoris", "Trade-In All Brand"]
   waCustomMessage String?  // Pesan WA kustom (opsional)
-  viewCount       Int      @default(0) // Jumlah klik Lightbox Preview (diperbesar)
+  viewCount       Int      @default(0) // Jumlah klik Lightbox Preview / Popup
   waClickCount    Int      @default(0) // Jumlah klik tombol "Klaim Promo via WA"
   displayOrder    Int      @default(0)
+  isPopup         Boolean  @default(false) // Tampil sebagai Popup Otomatis & Floating Mini-Poster
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -244,5 +245,27 @@ model PromoFlyer {
   @@index([isActive, displayOrder])
   @@map("promo_flyers")
 }
+
+// ------------------------------------------------------
+// 8. TESTIMONI & SERAH TERIMA UNIT (DELIVERY MOMENT)
+// ------------------------------------------------------
+
+model Testimonial {
+  id           String   @id @default(cuid())
+  customerName String   // Contoh: "Bpk. Hendra & Keluarga"
+  carName      String   // Contoh: "All New Avanza"
+  location     String?  // Contoh: "Batam Centre" (opsional)
+  rating       Int      @default(5) // 1 - 5 bintang
+  review       String   // Kalimat testimoni singkat
+  imageUrl     String   // Foto portrait serah terima (/uploads/...)
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive, displayOrder])
+  @@map("testimonials")
+}
+
 
 

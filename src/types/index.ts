@@ -113,6 +113,21 @@ export interface PromoFlyerItem {
   viewCount: number;
   waClickCount: number;
   displayOrder: number;
+  isPopup?: boolean;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TestimonialItem {
+  id: string;
+  customerName: string;
+  carName: string;
+  location: string | null;
+  rating: number;
+  review: string;
+  imageUrl: string;
+  displayOrder: number;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -128,4 +143,5 @@ export interface ApiSuccess<T = unknown> {
 export interface ApiError {
   error: string;
 }
+
 

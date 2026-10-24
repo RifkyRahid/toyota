@@ -192,14 +192,14 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
         </div>
       )}
 
-      {/* Prev / Next arrows (visible on md+) */}
+      {/* Prev / Next arrows (ditempatkan di kanan bawah agar tidak berbenturan dengan Floating Mini-Poster di kiri tengah & WA di kanan tengah) */}
       {banners.length > 1 && (
-        <>
+        <div className="hidden md:flex items-center gap-2 absolute bottom-4 lg:bottom-6 right-6 lg:right-10 z-20">
           <button
             onClick={() =>
               setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length)
             }
-            className="hidden md:flex absolute left-4 top-[38%] -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white transition-colors backdrop-blur-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-black/50 hover:bg-red-600 text-white border border-white/20 transition-colors backdrop-blur-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer"
             aria-label="Slide sebelumnya"
           >
             <svg
@@ -218,7 +218,7 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
           </button>
           <button
             onClick={goToNext}
-            className="hidden md:flex absolute right-4 md:right-6 top-[38%] -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white transition-colors backdrop-blur-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-black/50 hover:bg-red-600 text-white border border-white/20 transition-colors backdrop-blur-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer"
             aria-label="Slide berikutnya"
           >
             <svg
@@ -235,7 +235,7 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
               />
             </svg>
           </button>
-        </>
+        </div>
       )}
     </div>
   );
