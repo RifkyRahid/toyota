@@ -1,6 +1,6 @@
 'use client';
 
-import { sendGAEvent } from '@next/third-parties/google';
+import { sendGAEvent, sendGTMEvent } from '@next/third-parties/google';
 
 /**
  * Event 1: Melihat Detail Unit (view_car_detail)
@@ -12,13 +12,15 @@ export function trackViewCarDetail(data: {
   price_starting: string | number;
 }) {
   try {
-    sendGAEvent('event', 'view_car_detail', {
+    const eventPayload = {
       car_name: data.car_name,
       category: data.category,
       price_starting: String(data.price_starting),
-    });
+    };
+    sendGTMEvent({ event: 'view_car_detail', ...eventPayload });
+    sendGAEvent('event', 'view_car_detail', eventPayload);
   } catch (err) {
-    console.error('GA4 error:', err);
+    console.error('GTM/GA4 error:', err);
   }
 
   // Catat ke database internal
@@ -54,14 +56,16 @@ export function trackClickToWa(data: {
   car_name?: string;
   source_page?: string;
 }) {
-  // Kirim ke Google Analytics
+  // Kirim ke Google Tag Manager & Google Analytics
   try {
-    sendGAEvent('event', 'click_to_wa', {
+    const eventPayload = {
       source_button: data.source_button,
       car_name: data.car_name || 'general',
-    });
+    };
+    sendGTMEvent({ event: 'click_to_wa', ...eventPayload });
+    sendGAEvent('event', 'click_to_wa', eventPayload);
   } catch (err) {
-    console.error('GA4 error:', err);
+    console.error('GTM/GA4 error:', err);
   }
 
   // Kirim ke Database Internal
@@ -97,11 +101,12 @@ export function trackDownloadPricelist(data: {
   whatsapp?: string;
 }) {
   try {
+    sendGTMEvent({ event: 'download_pricelist', lead_name: data.name });
     sendGAEvent('event', 'download_pricelist', {
       lead_name: data.name,
     });
   } catch (err) {
-    console.error('GA4 error:', err);
+    console.error('GTM/GA4 error:', err);
   }
 }
 
