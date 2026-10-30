@@ -28,7 +28,7 @@ export default function RootLayout({
       <GoogleTagManager gtmId={gtmId} />
       <body suppressHydrationWarning>
         {children}
-        {gaId && gaId !== 'G-554854924' && <GoogleAnalytics gaId={gaId} />}
+        {gaId && gaId !== 'G-T8KNGRYFEM' && <GoogleAnalytics gaId={gaId} />}
       </body>
     </html>
   );
