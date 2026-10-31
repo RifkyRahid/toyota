@@ -8,9 +8,12 @@ const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: {
-    default: 'Agung Toyota Batam – Sales Representatif Resmi',
+    default: 'Agung Toyota Batam – Promo Toyota Batam, Harga OTR, Kredit & Sales Resmi',
     template: '%s | Agung Toyota Batam',
   },
+    verification: {
+      google: '<meta name="google-site-verification" content="DEoCAnBKUPpV7mX7ys1NdfDh0-r1GaDOMEi7gdwZagA" />',
+    },
   description:
     'Dapatkan penawaran terbaik Toyota di Batam. Harga OTR Batam terbaru, promo kredit, dan konsultasi langsung dengan sales resmi.',
 };
