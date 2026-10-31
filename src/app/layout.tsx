@@ -11,9 +11,9 @@ export const metadata: Metadata = {
     default: 'Agung Toyota Batam – Promo Toyota Batam, Harga OTR, Kredit & Sales Resmi',
     template: '%s | Agung Toyota Batam',
   },
-    verification: {
-      google: '<meta name="google-site-verification" content="DEoCAnBKUPpV7mX7ys1NdfDh0-r1GaDOMEi7gdwZagA" />',
-    },
+  verification: {
+    google: 'DEoCAnBKUPpV7mX7ys1NdfDh0-r1GaDOMEi7gdwZagA',
+  },
   description:
     'Dapatkan penawaran terbaik Toyota di Batam. Harga OTR Batam terbaru, promo kredit, dan konsultasi langsung dengan sales resmi.',
 };
@@ -24,14 +24,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-5BHBH3T7';
-  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  const envGaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  const gaId = envGaId && envGaId !== 'G-XXXXXXXXXX' ? envGaId : 'G-T8KNGRYFEM';
 
   return (
     <html lang="id" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
       <GoogleTagManager gtmId={gtmId} />
       <body suppressHydrationWarning>
         {children}
-        {gaId && gaId !== 'G-T8KNGRYFEM' && <GoogleAnalytics gaId={gaId} />}
+        <GoogleAnalytics gaId={gaId} />
       </body>
     </html>
   );
