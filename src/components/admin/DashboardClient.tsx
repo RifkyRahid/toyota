@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import AnalyticsChart, { type HourlyMeta } from './AnalyticsChart';
 import ReportModal from './ReportModal';
+import { extractDomisili } from '@/lib/lead-validation';
 
 type ChartFilterType = 'today' | '7d' | '30d' | 'all';
 
@@ -35,6 +36,7 @@ interface DashboardClientProps {
     name: string;
     whatsapp: string;
     carInterest?: string | null;
+    notes?: string | null;
     status: string;
     createdAt: string;
   }>;
@@ -45,6 +47,7 @@ interface DashboardClientProps {
     name: string;
     whatsapp: string;
     carInterest?: string | null;
+    notes?: string | null;
     status: string;
     createdAt: string;
   }>;
@@ -480,29 +483,45 @@ export default function DashboardClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {recentLeads.slice(0, 10).map((lead) => (
-                  <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-4 font-semibold text-gray-900">{lead.name}</td>
-                    <td className="py-3 px-4">
-                      <a
-                        href={`https://wa.me/${lead.whatsapp}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-green-600 hover:underline font-mono font-medium"
-                      >
-                        {lead.whatsapp}
-                      </a>
-                    </td>
-                    <td className="py-3 px-4 truncate max-w-[120px]">
-                      {lead.carInterest || 'Umum'}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700">
-                        {lead.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {recentLeads.slice(0, 10).map((lead) => {
+                  const domisiliLabel = extractDomisili(lead.notes);
+                  return (
+                    <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4">
+                        <span className="font-semibold text-gray-900 block">{lead.name}</span>
+                        {domisiliLabel && (
+                          <span
+                            className={`inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                              domisiliLabel.toLowerCase().includes('luar')
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                            }`}
+                          >
+                            {domisiliLabel}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <a
+                          href={`https://wa.me/${lead.whatsapp}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-green-600 hover:underline font-mono font-medium"
+                        >
+                          {lead.whatsapp}
+                        </a>
+                      </td>
+                      <td className="py-3 px-4 truncate max-w-[120px]">
+                        {lead.carInterest || 'Umum'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700">
+                          {lead.status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {recentLeads.length === 0 && (
                   <tr>
                     <td colSpan={4} className="py-6 text-center text-gray-400">

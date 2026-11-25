@@ -1,7 +1,7 @@
 'use client';
 
-import { buildWaUrl, formatRupiah } from '@/lib/format';
-import { trackClickToWa } from '@/lib/analytics';
+import { formatRupiah } from '@/lib/format';
+import { useWaLeadGate } from '@/components/public/WaLeadGateProvider';
 
 interface MobileBottomBarProps {
   price: string;
@@ -14,10 +14,8 @@ export default function MobileBottomBar({
   price,
   carName,
   variantName,
-  salesWhatsapp,
 }: MobileBottomBarProps) {
-  const waMessage = `Halo, saya tertarik dengan Toyota ${carName} varian ${variantName}. Bisa minta info harga OTR Batam?`;
-  const waUrl = buildWaUrl(salesWhatsapp, waMessage);
+  const { openLeadGate } = useWaLeadGate();
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white border-t border-gray-200 shadow-lg px-4 py-3">
@@ -29,20 +27,19 @@ export default function MobileBottomBar({
         </div>
 
         {/* CTA WA */}
-        <a
-          href={waUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          type="button"
           onClick={() =>
-            trackClickToWa({
-              source_button: 'MOBILE_BAR',
-              car_name: `${carName} ${variantName}`,
+            openLeadGate({
+              carInterest: `${carName} ${variantName}`,
+              leadSource: 'car_detail',
+              ctaButtonType: 'MOBILE_BAR',
             })
           }
-          className="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold text-sm hover:bg-red-700 transition-colors"
+          className="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold text-sm hover:bg-red-700 transition-colors cursor-pointer"
         >
           Tanya WA
-        </a>
+        </button>
       </div>
     </div>
   );

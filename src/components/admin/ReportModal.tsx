@@ -9,6 +9,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { generatePerformancePdf, type TopCarItem, type LeadReportItem } from '@/lib/pdf-report';
+import { extractDomisili } from '@/lib/lead-validation';
 import { toast } from 'sonner';
 
 export type ReportPeriod = 'this_month' | 'last_7_days' | 'last_30_days' | 'all_time' | 'custom';
@@ -21,6 +22,7 @@ interface ReportModalProps {
     name: string;
     whatsapp: string;
     carInterest?: string | null;
+    notes?: string | null;
     status: string;
     createdAt: string;
   }>;
@@ -212,14 +214,30 @@ export default function ReportModal({
       name: l.name,
       whatsapp: l.whatsapp,
       carInterest: l.carInterest,
+      domisili: extractDomisili(l.notes),
       status: l.status,
     }));
+
+    let batamLeadsCount = 0;
+    let luarBatamLeadsCount = 0;
+    for (const l of leads) {
+      const dom = extractDomisili(l.notes);
+      if (dom) {
+        if (dom.toLowerCase().includes('luar')) {
+          luarBatamLeadsCount += 1;
+        } else {
+          batamLeadsCount += 1;
+        }
+      }
+    }
 
     return {
       totalLeads,
       newLeads,
       dealLeads,
       totalClicks,
+      batamLeadsCount,
+      luarBatamLeadsCount,
       hourlyData,
       peakHoursText,
       peakDayText,
@@ -237,6 +255,8 @@ export default function ReportModal({
         newLeads: filteredStats.newLeads,
         dealLeads: filteredStats.dealLeads,
         totalClicks: filteredStats.totalClicks,
+        batamLeadsCount: filteredStats.batamLeadsCount,
+        luarBatamLeadsCount: filteredStats.luarBatamLeadsCount,
         topCars: filteredStats.topCars,
         recentLeads: filteredStats.recentLeads,
         hourlyData: filteredStats.hourlyData,
@@ -426,6 +446,17 @@ export default function ReportModal({
                 </div>
               </div>
             </div>
+
+            {(filteredStats.batamLeadsCount > 0 || filteredStats.luarBatamLeadsCount > 0) && (
+              <div className="flex items-center justify-between px-2.5 py-1.5 bg-white rounded-lg border border-gray-100 text-[11px] text-gray-600">
+                <span className="font-medium text-gray-500">Sebaran Domisili Prospek:</span>
+                <span>
+                  <strong className="text-blue-700">Batam: {filteredStats.batamLeadsCount}</strong>
+                  {' • '}
+                  <strong className="text-amber-700">Luar Batam: {filteredStats.luarBatamLeadsCount}</strong>
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { buildWaUrl, formatRupiah } from '@/lib/format';
+import { formatRupiah } from '@/lib/format';
 import type { SerializedCarVariant } from '@/types';
-import { trackClickToWa } from '@/lib/analytics';
+import { useWaLeadGate } from '@/components/public/WaLeadGateProvider';
 import { Check, ChevronRight } from 'lucide-react';
 
 interface VariantSelectorProps {
@@ -19,9 +19,9 @@ export default function VariantSelector({
   variants,
   heroImage,
   carName,
-  salesWhatsapp,
   onVariantChange,
 }: VariantSelectorProps) {
+  const { openLeadGate } = useWaLeadGate();
   const [selectedVariant, setSelectedVariant] = useState<SerializedCarVariant>(
     variants[0]
   );
@@ -30,9 +30,6 @@ export default function VariantSelector({
     setSelectedVariant(variant);
     onVariantChange?.(variant);
   };
-
-  const buildWaMessage = (variant: SerializedCarVariant) =>
-    `Halo, saya tertarik dengan Toyota ${carName} varian ${variant.name}. Bisa minta info harga OTR Batam dan promo terbaru?`;
 
   if (variants.length === 0) {
     return (
@@ -110,21 +107,20 @@ export default function VariantSelector({
               </div>
 
               {/* Tombol Tanya WA */}
-              <a
-                href={buildWaUrl(salesWhatsapp, buildWaMessage(variant))}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  trackClickToWa({
-                    source_button: 'VARIAN_DETAIL',
-                    car_name: `${carName} ${variant.name}`,
+                  openLeadGate({
+                    carInterest: `${carName} ${variant.name}`,
+                    leadSource: 'car_detail',
+                    ctaButtonType: 'VARIAN_DETAIL',
                   });
                 }}
-                className="mt-2 block w-full text-center bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 rounded-xl shadow-xs transition-colors"
+                className="mt-2 block w-full text-center bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer"
               >
                 Tanya Promo WA
-              </a>
+              </button>
             </div>
           );
         })}
@@ -192,23 +188,22 @@ export default function VariantSelector({
             )}
 
             {/* WA Button untuk Varian Aktif */}
-            <a
-              href={buildWaUrl(salesWhatsapp, buildWaMessage(selectedVariant))}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                trackClickToWa({
-                  source_button: 'VARIAN_DETAIL',
-                  car_name: `${carName} ${selectedVariant.name}`,
-                });
-              }}
-              className="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold py-3 px-4 rounded-xl shadow-sm transition-colors text-sm"
+            <button
+              type="button"
+              onClick={() =>
+                openLeadGate({
+                  carInterest: `${carName} ${selectedVariant.name}`,
+                  leadSource: 'car_detail',
+                  ctaButtonType: 'VARIAN_DETAIL',
+                })
+              }
+              className="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold py-3 px-4 rounded-xl shadow-sm transition-colors text-sm cursor-pointer"
             >
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.698.058-2.072-.511-1.636-.677-2.703-2.348-2.784-2.458-.083-.11-.664-.882-.664-1.682 0-.8.419-1.194.568-1.353.149-.16.326-.2.434-.2.109 0 .217.001.312.006.1.005.234-.038.365.279.136.329.464 1.134.505 1.218.041.084.068.182.013.292-.054.11-.082.179-.163.273-.082.095-.172.212-.246.284-.082.08-.168.167-.072.332.096.165.426.702.914 1.137.629.56 1.159.734 1.324.815.165.082.261.072.359-.041.098-.112.42-491.533-.66.113-.169.226-.14.37-.087.144.053.913.431 1.071.51.157.079.263.118.301.185.039.066.039.384-.105.789z" />
               </svg>
               <span>Konsultasi &amp; Penawaran Tipe Ini</span>
-            </a>
+            </button>
           </div>
         </div>
 

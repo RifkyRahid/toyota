@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import WaGateButton from '@/components/public/WaGateButton';
 
 interface FooterSettings {
   dealershipName: string;
@@ -74,8 +75,6 @@ export default function Footer({ settings }: FooterProps) {
     facebookUrl,
     tiktokUrl,
   } = settings;
-
-  const waLink = `https://wa.me/${salesWhatsapp}`;
 
   return (
     <footer className="bg-zinc-900 text-white">
@@ -156,15 +155,15 @@ export default function Footer({ settings }: FooterProps) {
                   <span>TikTok</span>
                 </a>
               )}
-              <a
-                href={waLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 text-sm text-green-400 hover:text-green-300 transition-colors mt-1"
+              <WaGateButton
+                carInterest="Konsultasi Pembelian Toyota Batam"
+                leadSource="footer_wa"
+                ctaButtonType="FOOTER"
+                className="inline-flex items-center gap-2.5 text-sm text-green-400 hover:text-green-300 transition-colors mt-1 text-left cursor-pointer"
               >
                 <WhatsAppIcon size={18} />
                 <span>WhatsApp: {salesWhatsapp}</span>
-              </a>
+              </WaGateButton>
             </div>
           </div>
         </div>

@@ -13,7 +13,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import type { PromoFlyerItem } from '@/types';
-import { trackClickToWa } from '@/lib/analytics';
+import { useWaLeadGate } from '@/components/public/WaLeadGateProvider';
 
 // ── Reusable Poster Canvas (Dipakai di Publik, Lightbox, & Live Preview Admin) ──
 export function FlyerPosterCanvas({
@@ -215,8 +215,8 @@ interface PromoFlyerSectionProps {
 
 export default function PromoFlyerSection({
   flyers,
-  salesWhatsapp,
 }: PromoFlyerSectionProps) {
+  const { openLeadGate } = useWaLeadGate();
   const [selectedFlyer, setSelectedFlyer] = useState<PromoFlyerItem | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -233,19 +233,11 @@ export default function PromoFlyerSection({
 
   if (!flyers || flyers.length === 0) return null;
 
-  const waNumber = salesWhatsapp.replace(/^\+/, '');
-
-  const buildFlyerWaUrl = (flyer: PromoFlyerItem) => {
-    const defaultMsg = `Halo Agung Toyota Batam, saya tertarik klaim promo flyer *${flyer.title}* (${flyer.highlight1Label} ${flyer.highlight1Value} | ${flyer.highlight2Label} ${flyer.highlight2Value}). Boleh minta info simulasi & syarat lengkapnya?`;
-    const msg = flyer.waCustomMessage?.trim() || defaultMsg;
-    return `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
-  };
-
-  // Catat klik ke database flyer & analytics global
-  const recordFlyerAction = (flyer: PromoFlyerItem, action: 'VIEW' | 'WA_CLICK') => {
+  // Catat tampilan lightbox ke database flyer
+  const recordFlyerView = (flyer: PromoFlyerItem) => {
     try {
       const url = `/api/flyers/${flyer.id}/track`;
-      const payload = JSON.stringify({ action });
+      const payload = JSON.stringify({ action: 'VIEW' });
       if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
         const blob = new Blob([payload], { type: 'application/json' });
         navigator.sendBeacon(url, blob);
@@ -260,18 +252,21 @@ export default function PromoFlyerSection({
     } catch {
       // ignore
     }
+  };
 
-    if (action === 'WA_CLICK') {
-      trackClickToWa({
-        source_button: 'PROMO_FLYER',
-        car_name: flyer.title,
-      });
-    }
+  const handleClaimFlyerWa = (flyer: PromoFlyerItem) => {
+    setSelectedFlyer(null);
+    openLeadGate({
+      carInterest: flyer.title,
+      leadSource: 'promo_flyer',
+      ctaButtonType: 'PROMO_FLYER',
+      flyerId: flyer.id,
+    });
   };
 
   const handleOpenLightbox = (flyer: PromoFlyerItem) => {
     setSelectedFlyer(flyer);
-    recordFlyerAction(flyer, 'VIEW');
+    recordFlyerView(flyer);
   };
 
   // Handler scroll mobile carousel untuk update indikator dot aktif
@@ -345,16 +340,14 @@ export default function PromoFlyerSection({
           </button>
         )}
 
-        <a
-          href={buildFlyerWaUrl(flyer)}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => recordFlyerAction(flyer, 'WA_CLICK')}
-          className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+        <button
+          type="button"
+          onClick={() => handleClaimFlyerWa(flyer)}
+          className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
         >
           <MessageCircle size={15} className="shrink-0" />
           <span>Klaim Promo via WA</span>
-        </a>
+        </button>
       </div>
     </div>
   );
@@ -493,16 +486,14 @@ export default function PromoFlyerSection({
                   Lihat Spesifikasi Unit
                 </Link>
               )}
-              <a
-                href={buildFlyerWaUrl(selectedFlyer)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => recordFlyerAction(selectedFlyer, 'WA_CLICK')}
-                className="w-full flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 px-4 rounded-xl text-sm font-bold text-center transition-colors flex items-center justify-center gap-2 shadow-sm"
+              <button
+                type="button"
+                onClick={() => handleClaimFlyerWa(selectedFlyer)}
+                className="w-full flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 px-4 rounded-xl text-sm font-bold text-center transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
               >
                 <MessageCircle size={17} />
                 <span>Klaim Promo Ini via WhatsApp</span>
-              </a>
+              </button>
             </div>
           </div>
         </div>

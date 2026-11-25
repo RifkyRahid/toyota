@@ -3,6 +3,40 @@
 import { sendGAEvent, sendGTMEvent } from '@next/third-parties/google';
 
 /**
+ * Helper internal: catat interaksi ke tabel cta_clicks di PostgreSQL
+ * secara non-blocking menggunakan sendBeacon / fetch keepalive.
+ */
+export function trackInternalCtaClick(data: {
+  buttonType: string;
+  carName?: string | null;
+  sourcePage?: string | null;
+}) {
+  try {
+    const payload = JSON.stringify({
+      buttonType: data.buttonType,
+      carName: data.carName || null,
+      sourcePage:
+        data.sourcePage ||
+        (typeof window !== 'undefined' ? window.location.pathname : null),
+    });
+
+    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+      const blob = new Blob([payload], { type: 'application/json' });
+      navigator.sendBeacon('/api/analytics/track', blob);
+    } else if (typeof fetch !== 'undefined') {
+      fetch('/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        keepalive: true,
+      }).catch(() => {});
+    }
+  } catch (err) {
+    console.error('Internal track error:', err);
+  }
+}
+
+/**
  * Event 1: Melihat Detail Unit (view_car_detail)
  * Trigger: Saat halaman /mobil/[slug] dimuat.
  */
@@ -23,40 +57,21 @@ export function trackViewCarDetail(data: {
     console.error('GTM/GA4 error:', err);
   }
 
-  // Catat ke database internal
-  try {
-    const payload = JSON.stringify({
-      buttonType: 'VIEW_CAR_DETAIL',
-      carName: data.car_name,
-      sourcePage: typeof window !== 'undefined' ? window.location.pathname : null,
-    });
-
-    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-      const blob = new Blob([payload], { type: 'application/json' });
-      navigator.sendBeacon('/api/analytics/track', blob);
-    } else if (typeof fetch !== 'undefined') {
-      fetch('/api/analytics/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-        keepalive: true,
-      }).catch(() => {});
-    }
-  } catch (err) {
-    console.error('Internal track error:', err);
-  }
+  trackInternalCtaClick({
+    buttonType: 'VIEW_CAR_DETAIL',
+    carName: data.car_name,
+  });
 }
 
 /**
- * Event 2: Klik WhatsApp (click_to_wa)
- * Trigger: Semua klik pada tombol / tautan WhatsApp.
+ * Event 2: Klik WhatsApp Langsung (click_to_wa)
+ * Trigger: Tombol WhatsApp non-Lead-Gate (misal langkah sukses LeadModal pricelist).
  */
 export function trackClickToWa(data: {
-  source_button: string; // e.g. "KATALOG_CARD", "VARIAN_DETAIL", "FLOATING_WA", "NAVBAR", "PROMO_DETAIL", "SALES_SECTION", "MOBILE_BAR"
+  source_button: string;
   car_name?: string;
   source_page?: string;
 }) {
-  // Kirim ke Google Tag Manager & Google Analytics
   try {
     const eventPayload = {
       source_button: data.source_button,
@@ -68,33 +83,16 @@ export function trackClickToWa(data: {
     console.error('GTM/GA4 error:', err);
   }
 
-  // Kirim ke Database Internal
-  try {
-    const payload = JSON.stringify({
-      buttonType: data.source_button,
-      carName: data.car_name || null,
-      sourcePage: data.source_page || (typeof window !== 'undefined' ? window.location.pathname : null),
-    });
-
-    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-      const blob = new Blob([payload], { type: 'application/json' });
-      navigator.sendBeacon('/api/analytics/track', blob);
-    } else if (typeof fetch !== 'undefined') {
-      fetch('/api/analytics/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-        keepalive: true,
-      }).catch(() => {});
-    }
-  } catch (err) {
-    console.error('Internal track error:', err);
-  }
+  trackInternalCtaClick({
+    buttonType: data.source_button,
+    carName: data.car_name || null,
+    sourcePage: data.source_page,
+  });
 }
 
 /**
  * Event 3: Unduh Pricelist (download_pricelist)
- * Trigger: Saat form Lead Gate berhasil disubmit.
+ * Trigger: Saat form Lead Gate Pricelist berhasil disubmit.
  */
 export function trackDownloadPricelist(data: {
   name: string;
@@ -110,3 +108,43 @@ export function trackDownloadPricelist(data: {
   }
 }
 
+/**
+ * Event 4: Submit Lead Gate WhatsApp (submit_wa_lead)
+ * Trigger: Saat mini-form Lead Gate lolos validasi dan disubmit sebelum redirect WA.
+ * Dipisahkan dari event lama `click_to_wa` sebagai trigger konversi utama Google Ads di GTM.
+ */
+export function trackSubmitWaLead(data: {
+  lead_source: string;
+  car_interest: string;
+  domisili: string;
+}) {
+  const normalizedDomisili =
+    data.domisili.toLowerCase().includes('luar') ? 'Luar Batam' : 'Batam';
+
+  try {
+    if (typeof window !== 'undefined') {
+      const win = window as unknown as {
+        dataLayer?: Array<Record<string, unknown>>;
+        gtag?: (...args: unknown[]) => void;
+      };
+
+      win.dataLayer = win.dataLayer || [];
+      win.dataLayer.push({
+        event: 'submit_wa_lead',
+        lead_source: data.lead_source,
+        car_interest: data.car_interest,
+        domisili: normalizedDomisili,
+      });
+
+      if (typeof win.gtag === 'function') {
+        win.gtag('event', 'submit_wa_lead', {
+          lead_source: data.lead_source,
+          car_interest: data.car_interest,
+          domisili: normalizedDomisili,
+        });
+      }
+    }
+  } catch (err) {
+    console.error('GTM/GA4 submit_wa_lead error:', err);
+  }
+}

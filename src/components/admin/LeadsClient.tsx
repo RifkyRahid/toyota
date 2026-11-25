@@ -4,6 +4,7 @@ import { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { Download, Search, MessageSquare, PhoneCall, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { extractDomisili } from '@/lib/lead-validation';
 
 export interface LeadItem {
   id: string;
@@ -50,6 +51,7 @@ export default function LeadsClient({ initialLeads }: LeadsClientProps) {
         }),
         'Nama Calon Pembeli': l.name,
         'Nomor WhatsApp': l.whatsapp,
+        Domisili: extractDomisili(l.notes) || '-',
         'Unit Minat': l.carInterest || 'Umum / Pricelist',
         'Sumber Halaman': l.sourcePage,
         'Status Prospek': l.status,
@@ -213,12 +215,26 @@ export default function LeadsClient({ initialLeads }: LeadsClientProps) {
                 const waUrl = `https://wa.me/${waClean}?text=${encodeURIComponent(
                   `Halo Bapak/Ibu ${lead.name}, saya dari Agung Toyota Batam menindaklanjuti permintaan informasi unit Toyota.`
                 )}`;
+                const domisiliLabel = extractDomisili(lead.notes);
 
                 return (
                   <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
                     <td className="py-3.5 px-4">
                       <span className="font-bold text-gray-900 block">{lead.name}</span>
-                      <span className="text-[11px] text-gray-400 block">{lead.sourcePage}</span>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                        {domisiliLabel && (
+                          <span
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                              domisiliLabel.toLowerCase().includes('luar')
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                            }`}
+                          >
+                            {domisiliLabel}
+                          </span>
+                        )}
+                        <span className="text-[11px] text-gray-400">{lead.sourcePage}</span>
+                      </div>
                     </td>
 
                     <td className="py-3.5 px-4">

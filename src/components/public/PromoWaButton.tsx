@@ -1,28 +1,29 @@
 'use client';
 
-import { trackClickToWa } from '@/lib/analytics';
+import { useWaLeadGate } from '@/components/public/WaLeadGateProvider';
 
 interface PromoWaButtonProps {
-  href: string;
+  href?: string;
   articleTitle: string;
 }
 
-export default function PromoWaButton({ href, articleTitle }: PromoWaButtonProps) {
+export default function PromoWaButton({ articleTitle }: PromoWaButtonProps) {
+  const { openLeadGate } = useWaLeadGate();
+
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
+    <button
+      type="button"
       onClick={() =>
-        trackClickToWa({
-          source_button: 'PROMO_DETAIL',
-          car_name: `Promo: ${articleTitle}`,
+        openLeadGate({
+          carInterest: articleTitle,
+          leadSource: 'promo_article',
+          ctaButtonType: 'PROMO_DETAIL',
         })
       }
-      className="inline-flex items-center justify-center shrink-0 bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg shadow-sm transition-colors text-sm"
+      className="inline-flex items-center justify-center shrink-0 bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg shadow-sm transition-colors text-sm cursor-pointer"
     >
       Chat WhatsApp Sekarang
-    </a>
+    </button>
   );
 }
 

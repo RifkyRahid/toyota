@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Phone, MessageCircle, MapPin, Award, CheckCircle, ShieldCheck, Clock, Car } from 'lucide-react';
-import { buildWaUrl } from '@/lib/format';
 import { getSiteSettings } from '@/lib/data';
+import WaGateButton from '@/components/public/WaGateButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +16,6 @@ export default async function SalesPage() {
   const salesName = settings.salesName || 'Sales Representatif Toyota';
   const salesTitle = settings.salesTitle || 'Certified Sales Executive';
   const salesPhone = settings.salesPhone || '';
-  const salesWhatsapp = settings.salesWhatsapp || '6281234567890';
   const salesPhotoUrl = settings.salesPhotoUrl || '';
   const salesBio =
     settings.salesBio ||
@@ -24,11 +23,6 @@ export default async function SalesPage() {
   const dealershipName = settings.dealershipName || 'Agung Toyota Batam';
   const dealershipAddress =
     settings.dealershipAddress || 'Jl. Yos Sudarso, Batu Ampar, Kota Batam, Kepulauan Riau';
-
-  const waUrl = buildWaUrl(
-    salesWhatsapp,
-    `Halo ${salesName}, saya ingin konsultasi rencana pembelian mobil Toyota OTR Batam.`
-  );
 
   return (
     <main className="min-h-screen bg-gray-50 py-10 md:py-16">
@@ -108,15 +102,15 @@ export default async function SalesPage() {
 
               {/* Action Buttons */}
               <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
-                <a
-                  href={waUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition-all hover:shadow"
+                <WaGateButton
+                  carInterest="Konsultasi Pembelian Toyota Batam"
+                  leadSource="sales_profile"
+                  ctaButtonType="SALES_SECTION"
+                  className="inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition-all hover:shadow cursor-pointer"
                 >
                   <MessageCircle className="w-4 h-4" />
                   <span>Chat WhatsApp Sales</span>
-                </a>
+                </WaGateButton>
 
                 {salesPhone && (
                   <a

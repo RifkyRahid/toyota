@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { trackClickToWa } from '@/lib/analytics';
+import { useWaLeadGate } from '@/components/public/WaLeadGateProvider';
 
 interface NavbarProps {
   salesWhatsapp: string;
@@ -19,7 +19,8 @@ const navLinks = [
   { label: 'Tentang Sales', href: '/tentang' },
 ];
 
-export default function Navbar({ salesWhatsapp, logoUrl }: NavbarProps) {
+export default function Navbar({ logoUrl }: NavbarProps) {
+  const { openLeadGate } = useWaLeadGate();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -73,15 +74,19 @@ export default function Navbar({ salesWhatsapp, logoUrl }: NavbarProps) {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center">
-            <a
-              href={`https://wa.me/${salesWhatsapp}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackClickToWa({ source_button: 'NAVBAR' })}
-              className="inline-flex items-center gap-2 px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-semibold rounded-md transition-colors shadow-sm"
+            <button
+              type="button"
+              onClick={() =>
+                openLeadGate({
+                  carInterest: 'Konsultasi Pembelian Toyota Batam',
+                  leadSource: 'navbar_wa',
+                  ctaButtonType: 'NAVBAR',
+                })
+              }
+              className="inline-flex items-center gap-2 px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-semibold rounded-md transition-colors shadow-sm cursor-pointer"
             >
               Hubungi Sales
-            </a>
+            </button>
           </div>
 
           {/* Mobile hamburger */}
@@ -111,18 +116,20 @@ export default function Navbar({ salesWhatsapp, logoUrl }: NavbarProps) {
                 {link.label}
               </Link>
             ))}
-            <a
-              href={`https://wa.me/${salesWhatsapp}`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
               onClick={() => {
                 handleLinkClick();
-                trackClickToWa({ source_button: 'NAVBAR' });
+                openLeadGate({
+                  carInterest: 'Konsultasi Pembelian Toyota Batam',
+                  leadSource: 'navbar_wa',
+                  ctaButtonType: 'NAVBAR',
+                });
               }}
-              className="mt-2 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-md transition-colors"
+              className="mt-2 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-md transition-colors cursor-pointer"
             >
               Hubungi Sales
-            </a>
+            </button>
           </nav>
         </div>
       )}

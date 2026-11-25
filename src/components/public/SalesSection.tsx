@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { ShieldCheck, CheckCircle } from 'lucide-react';
 import type { SiteSetting } from '@/types';
-import { trackClickToWa } from '@/lib/analytics';
+import { useWaLeadGate } from '@/components/public/WaLeadGateProvider';
 
 interface SalesSectionProps {
   settings: Partial<SiteSetting>;
@@ -16,10 +16,7 @@ const SELLING_POINTS = [
 ] as const;
 
 export default function SalesSection({ settings }: SalesSectionProps) {
-  const waNumber = (settings.salesWhatsapp ?? '').replace(/^\+/, '');
-  const waUrl = waNumber
-    ? `https://wa.me/${waNumber}?text=${encodeURIComponent('Halo, saya ingin berkonsultasi mengenai Toyota di Batam.')}`
-    : '#';
+  const { openLeadGate } = useWaLeadGate();
 
   return (
     <section className="py-16 bg-gray-50">
@@ -106,15 +103,19 @@ export default function SalesSection({ settings }: SalesSectionProps) {
                   📞 Telepon Sekarang
                 </a>
               )}
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackClickToWa({ source_button: 'SALES_SECTION' })}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors text-sm"
+              <button
+                type="button"
+                onClick={() =>
+                  openLeadGate({
+                    carInterest: 'Konsultasi Pembelian Toyota Batam',
+                    leadSource: 'sales_profile',
+                    ctaButtonType: 'SALES_SECTION',
+                  })
+                }
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors text-sm cursor-pointer"
               >
                 💬 Chat WhatsApp
-              </a>
+              </button>
             </div>
           </div>
         </div>

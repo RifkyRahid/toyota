@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { SerializedCarModel } from '@/types';
-import { trackClickToWa } from '@/lib/analytics';
+import { useWaLeadGate } from '@/components/public/WaLeadGateProvider';
 
 // ── Helper ────────────────────────────────────────────────────
 /**
@@ -24,14 +24,8 @@ interface CarCardProps {
 }
 
 // ── Component ─────────────────────────────────────────────────
-export default function CarCard({ car, salesWhatsapp }: CarCardProps) {
-  // Build context-aware WA link
-  const waMessage = encodeURIComponent(
-    `Halo Agung Toyota Batam, saya tertarik informasi unit *${car.name}* OTR Batam.`
-  );
-  // Normalise WA number — remove leading + if present
-  const waNumber = salesWhatsapp.replace(/^\+/, '');
-  const waUrl = `https://wa.me/${waNumber}?text=${waMessage}`;
+export default function CarCard({ car }: CarCardProps) {
+  const { openLeadGate } = useWaLeadGate();
 
   return (
     <div className="group bg-white rounded-xl border border-gray-100 shadow-xs hover:shadow-md hover:border-gray-200 transition-all duration-200 flex flex-col overflow-hidden">
@@ -76,15 +70,19 @@ export default function CarCard({ car, salesWhatsapp }: CarCardProps) {
           >
             Lihat Detail
           </Link>
-          <a
-            href={waUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => trackClickToWa({ source_button: 'KATALOG_CARD', car_name: car.name })}
-            className="flex-1 text-center bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors shadow-xs"
+          <button
+            type="button"
+            onClick={() =>
+              openLeadGate({
+                carInterest: car.name,
+                leadSource: 'katalog_wa',
+                ctaButtonType: 'KATALOG_CARD',
+              })
+            }
+            className="flex-1 text-center bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors shadow-xs cursor-pointer"
           >
             Tanya WA
-          </a>
+          </button>
         </div>
       </div>
     </div>

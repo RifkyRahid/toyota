@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { X, MessageCircle, Sparkles, Flame } from 'lucide-react';
 import type { PromoFlyerItem } from '@/types';
 import { FlyerPosterCanvas } from '@/components/public/PromoFlyerSection';
-import { trackClickToWa } from '@/lib/analytics';
+import { useWaLeadGate } from '@/components/public/WaLeadGateProvider';
 
 interface PromoPopupModalProps {
   flyer: PromoFlyerItem | null;
@@ -12,78 +13,119 @@ interface PromoPopupModalProps {
 }
 
 const SESSION_STORAGE_KEY = 'toyota_promo_popup_seen_v1';
+const AUTO_POPUP_DELAY_MS = 6000; // 6 detik
+const AUTO_POPUP_SCROLL_RATIO = 0.25; // 25% scroll halaman
 
 export default function PromoPopupModal({
   flyer,
-  salesWhatsapp,
 }: PromoPopupModalProps) {
+  const pathname = usePathname();
+  const isHomepage = pathname === '/';
+  const { openLeadGate } = useWaLeadGate();
+
   const [isOpen, setIsOpen] = useState(false);
   const [isClosingToLeft, setIsClosingToLeft] = useState(false);
   const [showFloatingMini, setShowFloatingMini] = useState(false);
+  const hasTriggeredRef = useRef(false);
 
-  // Gunakan nomor WA Lidya Toyota (6285355746543) jika salesWhatsapp kosong atau masih default dummy
-  const cleanWa =
-    salesWhatsapp &&
-    salesWhatsapp.replace(/\D/g, '') !== '' &&
-    salesWhatsapp.replace(/\D/g, '') !== '6281234567890'
-      ? salesWhatsapp.replace(/\D/g, '')
-      : '6285355746543';
+  const trackFlyerView = useCallback(() => {
+    if (!flyer?.id || flyer.id.startsWith('default-') || flyer.id.startsWith('fallback-')) {
+      return;
+    }
+    fetch(`/api/flyers/${flyer.id}/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'VIEW' }),
+    }).catch(() => {
+      // Abaikan error jaringan
+    });
+  }, [flyer]);
 
-  const trackFlyerInteraction = useCallback(
-    (action: 'VIEW' | 'WA_CLICK') => {
-      if (!flyer?.id || flyer.id.startsWith('default-')) return;
-      fetch(`/api/flyers/${flyer.id}/track`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      }).catch(() => {
-        // Abaikan error jaringan
-      });
-    },
-    [flyer]
-  );
-
-  // Muncul otomatis 2 detik setelah halaman dibuka (1x per sesi kunjungan via sessionStorage)
+  // Opsi A: Auto-popup HANYA aktif di halaman utama (/)
+  // Muncul setelah 6 detik ATAU setelah scroll 25-30% halaman (mana lebih dulu).
   useEffect(() => {
-    if (!flyer || !flyer.isActive) return;
+    if (!flyer || !flyer.isActive || !isHomepage) {
+      setIsOpen(false);
+      setShowFloatingMini(false);
+      return;
+    }
 
     try {
       const alreadySeen = sessionStorage.getItem(SESSION_STORAGE_KEY);
-      if (!alreadySeen) {
-        const timer = setTimeout(() => {
-          sessionStorage.setItem(SESSION_STORAGE_KEY, '1');
-          setIsOpen(true);
-          trackFlyerInteraction('VIEW');
-        }, 2000);
-        return () => clearTimeout(timer);
-      } else {
-        // Jika sudah pernah muncul di sesi ini, langsung tampilkan Floating Mini-Poster di kiri tengah
+      if (alreadySeen) {
         setShowFloatingMini(true);
+        return;
       }
     } catch {
-      // Fallback jika sessionStorage diblokir browser
       setShowFloatingMini(true);
+      return;
     }
-  }, [flyer, trackFlyerInteraction]);
+
+    hasTriggeredRef.current = false;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+
+    const triggerPopupOnce = () => {
+      if (hasTriggeredRef.current) return;
+      hasTriggeredRef.current = true;
+
+      if (timerId) clearTimeout(timerId);
+      window.removeEventListener('scroll', handleScroll);
+
+      try {
+        sessionStorage.setItem(SESSION_STORAGE_KEY, '1');
+      } catch {
+        // Abaikan jika sessionStorage diblokir
+      }
+
+      setIsOpen(true);
+      trackFlyerView();
+    };
+
+    const handleScroll = () => {
+      const docEl = document.documentElement;
+      const scrollableHeight = docEl.scrollHeight - window.innerHeight;
+      if (scrollableHeight <= 0) return;
+
+      const currentRatio = window.scrollY / scrollableHeight;
+      if (currentRatio >= AUTO_POPUP_SCROLL_RATIO) {
+        triggerPopupOnce();
+      }
+    };
+
+    timerId = setTimeout(triggerPopupOnce, AUTO_POPUP_DELAY_MS);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      if (timerId) clearTimeout(timerId);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [flyer, isHomepage, trackFlyerView]);
 
   // Tutup popup dengan animasi meluncur & mengecil ke sisi kiri tengah layar
   const handleClosePopup = useCallback(() => {
     if (isClosingToLeft) return;
-    setIsClosingToLeft(true);
+    try {
+      sessionStorage.setItem(SESSION_STORAGE_KEY, '1');
+    } catch {
+      // ignore
+    }
 
+    setIsClosingToLeft(true);
     setTimeout(() => {
       setIsOpen(false);
       setIsClosingToLeft(false);
-      setShowFloatingMini(true);
-    }, 460);
-  }, [isClosingToLeft]);
+      if (isHomepage) {
+        setShowFloatingMini(true);
+      }
+    }, 420);
+  }, [isClosingToLeft, isHomepage]);
 
   // Buka kembali popup saat Floating Mini-Poster diklik
   const handleOpenFromMini = () => {
     setShowFloatingMini(false);
     setIsClosingToLeft(false);
     setIsOpen(true);
-    trackFlyerInteraction('VIEW');
+    trackFlyerView();
   };
 
   // Tutup dengan tombol Escape
@@ -96,21 +138,23 @@ export default function PromoPopupModal({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isOpen, handleClosePopup]);
 
-  if (!flyer || !flyer.isActive) return null;
+  if (!flyer || !flyer.isActive || !isHomepage) return null;
 
-  const getWaLink = () => {
-    const defaultMsg =
-      flyer.waCustomMessage && flyer.waCustomMessage.trim() !== ''
-        ? flyer.waCustomMessage
-        : `Halo Lidya Agung Toyota Batam, saya tertarik klaim *${flyer.title}* (${flyer.eventTag || 'Promo Bulan Ini'}). Mohon info lengkap & simulasi kreditnya.`;
-    return `https://wa.me/${cleanWa}?text=${encodeURIComponent(defaultMsg)}`;
-  };
+  const handleClaimPromoClick = () => {
+    try {
+      sessionStorage.setItem(SESSION_STORAGE_KEY, '1');
+    } catch {
+      // ignore
+    }
+    setIsOpen(false);
+    setIsClosingToLeft(false);
+    setShowFloatingMini(true);
 
-  const handleWaClick = () => {
-    trackFlyerInteraction('WA_CLICK');
-    trackClickToWa({
-      source_button: 'PROMO_POPUP_WA',
-      car_name: flyer.title,
+    openLeadGate({
+      carInterest: flyer.title,
+      leadSource: 'popup_flyer',
+      ctaButtonType: 'PROMO_POPUP_WA',
+      flyerId: flyer.id,
     });
   };
 
@@ -121,7 +165,7 @@ export default function PromoPopupModal({
 
   return (
     <>
-      {/* ── 1. FLOATING MINI-POSTER DI SISI KIRI TENGAH (Berseberangan dengan Floating WA) ── */}
+      {/* ── 1. FLOATING MINI-POSTER DI SISI KIRI TENGAH (Hanya di Beranda setelah popup ditutup) ── */}
       {showFloatingMini && !isOpen && (
         <div className="fixed left-2 sm:left-3 md:left-4 top-1/2 -translate-y-1/2 z-40 select-none animate-in fade-in zoom-in-75 duration-300">
           <button
@@ -148,7 +192,7 @@ export default function PromoPopupModal({
               <img
                 src={miniPosterThumb}
                 alt={flyer.title}
-                className="w-full h-auto max-h-[105px] sm:max-h-[120px] md:max-h-[135px] object-contain block group-hover: brightness-105 transition-all"
+                className="w-full h-auto max-h-[105px] sm:max-h-[120px] md:max-h-[135px] object-contain block group-hover:brightness-105 transition-all"
               />
             </div>
 
@@ -160,28 +204,31 @@ export default function PromoPopupModal({
         </div>
       )}
 
-      {/* ── 2. POPUP MODAL PROMO OTOMATIS (Dengan Animasi Meluncur ke Kiri Tengah Saat Ditutup) ── */}
+      {/* ── 2. POPUP MODAL PROMO OTOMATIS (6 detik / scroll 25%) ── */}
       {isOpen && (
         <div
-          className={`fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 transition-colors duration-450 ${
+          className={`fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 transition-colors duration-400 ${
             isClosingToLeft
               ? 'bg-black/0 backdrop-blur-none pointer-events-none'
               : 'bg-black/80 backdrop-blur-xs'
           }`}
+          role="dialog"
+          aria-modal="true"
+          aria-label={flyer.title}
           onClick={handleClosePopup}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className={`relative w-full max-w-[380px] sm:max-w-[420px] flex flex-col rounded-2xl overflow-hidden bg-zinc-950 shadow-[0_25px_60px_rgba(0,0,0,0.65)] border border-white/15 transition-all duration-450 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            className={`relative w-full max-w-[390px] sm:max-w-[430px] flex flex-col rounded-2xl overflow-hidden bg-zinc-950 shadow-[0_25px_60px_rgba(0,0,0,0.65)] border border-white/15 transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] ${
               isClosingToLeft
                 ? '-translate-x-[43vw] scale-[0.16] opacity-15 rounded-3xl'
                 : 'translate-x-0 scale-100 opacity-100 animate-in fade-in zoom-in-95 duration-300'
             }`}
           >
-            {/* Header Bar Tipis + Tombol Close (X) */}
-            <div className="flex items-center justify-between px-3.5 py-2.5 bg-gradient-to-r from-red-700 via-red-600 to-zinc-900 text-white">
+            {/* Header Bar dengan Tombol Close (X) Besar & Terpisah Aman dari CTA Bawah */}
+            <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 bg-gradient-to-r from-red-700 via-red-600 to-zinc-900 text-white">
               <div className="flex items-center gap-1.5 min-w-0">
-                <Sparkles size={14} className="text-amber-300 shrink-0" />
+                <Sparkles size={15} className="text-amber-300 shrink-0" />
                 <span className="text-xs font-extrabold uppercase tracking-wider truncate">
                   {flyer.eventTag || 'Promo Spesial Bulan Ini'}
                 </span>
@@ -191,20 +238,20 @@ export default function PromoPopupModal({
                 type="button"
                 onClick={handleClosePopup}
                 aria-label="Tutup Popup Promo"
-                className="inline-flex items-center gap-1 bg-black/30 hover:bg-black/60 text-white text-xs font-bold px-2.5 py-1 rounded-full transition-colors cursor-pointer shrink-0"
+                className="inline-flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px] px-3 rounded-full bg-black/45 hover:bg-black/75 active:scale-95 text-white text-xs font-bold border border-white/25 transition-all cursor-pointer shrink-0 shadow-sm"
               >
                 <span>Tutup</span>
-                <X size={14} />
+                <X size={18} strokeWidth={2.5} />
               </button>
             </div>
 
-            {/* Area Gambar Poster (100% Utuh Tanpa Terpotong) */}
-            <div className="relative w-full bg-zinc-950 flex items-center justify-center overflow-y-auto max-h-[66vh] sm:max-h-[70vh]">
+            {/* Area Gambar Poster (Utuh Tanpa Terpotong, Dipisahkan dari CTA Bawah) */}
+            <div className="relative w-full bg-zinc-950 flex items-center justify-center overflow-y-auto max-h-[58vh] sm:max-h-[64vh]">
               {flyer.mode === 'IMAGE' && flyer.customImageUrl ? (
                 <img
                   src={flyer.customImageUrl}
                   alt={flyer.title}
-                  className="w-full h-auto max-h-[66vh] sm:max-h-[70vh] object-contain block mx-auto select-none"
+                  className="w-full h-auto max-h-[58vh] sm:max-h-[64vh] object-contain block mx-auto select-none"
                 />
               ) : (
                 <div className="w-full">
@@ -213,18 +260,16 @@ export default function PromoPopupModal({
               )}
             </div>
 
-            {/* Area Tombol CTA di Bawah Poster */}
-            <div className="p-3.5 sm:p-4 bg-white border-t border-gray-100 flex flex-col gap-2">
-              <a
-                href={getWaLink()}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={handleWaClick}
-                className="w-full py-3 px-4 rounded-xl bg-green-600 hover:bg-green-700 active:scale-[0.99] text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-green-600/25 transition-all"
+            {/* Area Tombol CTA di Bawah Poster (Terpisah Aman dari Tombol Close di Atas) */}
+            <div className="p-3.5 sm:p-4 bg-white border-t border-gray-200 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleClaimPromoClick}
+                className="w-full py-3.5 px-4 rounded-xl bg-green-600 hover:bg-green-700 active:scale-[0.99] text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-green-600/25 transition-all cursor-pointer"
               >
                 <MessageCircle size={19} className="shrink-0" />
-                <span>Klaim Promo via WhatsApp</span>
-              </a>
+                <span>Klaim Promo via WA</span>
+              </button>
               <p className="text-[11px] text-center text-gray-500 font-medium">
                 Respon Cepat Sales Resmi Agung Toyota Batam • Lidya (0853-5574-6543)
               </p>
@@ -235,4 +280,3 @@ export default function PromoPopupModal({
     </>
   );
 }
-

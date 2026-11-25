@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { LeadStatus } from '@prisma/client';
+import { validateIndonesianWa, validateLeadName } from '@/lib/lead-validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,9 +24,29 @@ function checkLeadRateLimit(ip: string): boolean {
 
 // ── POST /api/leads ───────────────────────────────────────────
 // Endpoint publik: menerima data prospek dari form Lead Gate.
-// Tidak memerlukan autentikasi, dilengkapi rate-limit anti-spam.
+// Tidak memerlukan autentikasi, dilengkapi rate-limit & validasi anti-spam.
 export async function POST(req: NextRequest) {
   try {
+    const body = await req.json();
+    const {
+      name,
+      whatsapp,
+      carInterest,
+      sourcePage,
+      domisili,
+      leadSource,
+      website, // hidden honeypot field
+    } = body;
+
+    // ── 1. Honeypot check (saring bot otomatis) ───────────────
+    if (typeof website === 'string' && website.trim() !== '') {
+      return NextResponse.json(
+        { error: 'Permintaan tidak dapat diproses.' },
+        { status: 400 }
+      );
+    }
+
+    // ── 2. Rate limiting per IP ───────────────────────────────
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
     if (!checkLeadRateLimit(ip)) {
       return NextResponse.json(
@@ -34,36 +55,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
-    const { name, whatsapp, carInterest, sourcePage } = body;
+    // ── 3. Validasi Nama & Nomor WhatsApp ─────────────────────
+    const nameError = validateLeadName(name);
+    if (nameError) {
+      return NextResponse.json({ error: nameError }, { status: 400 });
+    }
 
-    // ── Validasi field wajib ────────────────────────────────
-    if (!name?.trim() || !whatsapp?.trim()) {
+    const waCheck = validateIndonesianWa(whatsapp);
+    if (!waCheck.valid) {
       return NextResponse.json(
-        { error: 'Nama dan nomor WhatsApp wajib diisi.' },
+        { error: waCheck.error || 'Format nomor WhatsApp tidak valid.' },
         { status: 400 }
       );
     }
 
-    const cleanWa = String(whatsapp).replace(/\s/g, '');
-    // ── Validasi format nomor WA ────────────────────────────
-    const waPattern = /^(08|628)\d{7,12}$/;
-    if (!waPattern.test(cleanWa)) {
-      return NextResponse.json(
-        {
-          error:
-            'Format nomor WhatsApp tidak valid. Gunakan format 08xx atau 628xx.',
-        },
-        { status: 400 }
-      );
-    }
+    // ── 4. Format catatan domisili & sumber klik (zero-migration) ──
+    const cleanDomisili =
+      typeof domisili === 'string' && domisili.trim() !== ''
+        ? domisili.trim().slice(0, 50)
+        : null;
+
+    const cleanSourcePageBase = sourcePage ? String(sourcePage).trim() : '';
+    const cleanLeadSource = leadSource ? String(leadSource).trim() : '';
+    const combinedSourcePage =
+      cleanLeadSource && !cleanSourcePageBase.includes(cleanLeadSource)
+        ? `${cleanSourcePageBase || '/'} [${cleanLeadSource}]`
+        : cleanSourcePageBase || null;
 
     const lead = await prisma.lead.create({
       data: {
         name: String(name).trim().slice(0, 100),
-        whatsapp: cleanWa.slice(0, 20),
+        whatsapp: waCheck.cleaned.slice(0, 20),
         carInterest: carInterest ? String(carInterest).trim().slice(0, 100) : null,
-        sourcePage: sourcePage ? String(sourcePage).trim().slice(0, 200) : null,
+        sourcePage: combinedSourcePage ? combinedSourcePage.slice(0, 200) : null,
+        notes: cleanDomisili ? `Domisili: ${cleanDomisili}` : null,
         status: 'BARU',
       },
     });

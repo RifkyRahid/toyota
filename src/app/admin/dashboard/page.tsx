@@ -96,6 +96,7 @@ export default async function AdminDashboardPage() {
     name: lead.name,
     whatsapp: lead.whatsapp,
     carInterest: lead.carInterest,
+    notes: lead.notes,
     status: lead.status,
     createdAt: lead.createdAt.toISOString(),
   }));

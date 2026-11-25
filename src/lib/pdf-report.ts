@@ -13,6 +13,7 @@ export interface LeadReportItem {
   name: string;
   whatsapp: string;
   carInterest?: string | null;
+  domisili?: string | null;
   status: string;
 }
 
@@ -22,6 +23,8 @@ export interface GenerateReportOptions {
   newLeads: number;
   dealLeads: number;
   totalClicks?: number;
+  batamLeadsCount?: number;
+  luarBatamLeadsCount?: number;
   topCars: TopCarItem[];
   recentLeads: LeadReportItem[];
   hourlyData?: number[]; // Array of 24 numbers
@@ -157,9 +160,23 @@ export function generatePerformancePdf(options: GenerateReportOptions): void {
   doc.setTextColor(...darkGray);
   doc.text('2. REKAPITULASI PROSPEK TERKINI (LEAD PIPELINE)', 40, lastY2 + 18);
 
+  const batamCount = options.batamLeadsCount ?? 0;
+  const luarBatamCount = options.luarBatamLeadsCount ?? 0;
+  if (batamCount > 0 || luarBatamCount > 0) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(90, 90, 95);
+    doc.text(
+      `Domisili: Batam (${batamCount}) • Luar Batam / Kepri (${luarBatamCount})`,
+      340,
+      lastY2 + 18
+    );
+  }
+
   const recentRows = options.recentLeads.slice(0, 5).map((lead) => [
     new Date(lead.createdAt).toLocaleDateString('id-ID'),
     lead.name,
+    lead.domisili || '-',
     lead.whatsapp,
     lead.carInterest || 'Umum / Pricelist',
     lead.status,
@@ -169,8 +186,8 @@ export function generatePerformancePdf(options: GenerateReportOptions): void {
     startY: lastY2 + 24,
     margin: { left: 40, right: 40 },
     theme: 'striped',
-    head: [['Tanggal', 'Nama Calon Pembeli', 'No. WhatsApp', 'Unit Diminati', 'Status']],
-    body: recentRows.length > 0 ? recentRows : [['-', 'Belum ada prospek tercatat pada periode ini', '-', '-', '-']],
+    head: [['Tanggal', 'Nama Calon Pembeli', 'Domisili', 'No. WhatsApp', 'Unit Diminati', 'Status']],
+    body: recentRows.length > 0 ? recentRows : [['-', 'Belum ada prospek tercatat pada periode ini', '-', '-', '-', '-']],
     headStyles: {
       fillColor: darkGray,
       textColor: [255, 255, 255],
