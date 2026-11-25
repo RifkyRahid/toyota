@@ -11,6 +11,8 @@ import {
   Check,
   X,
   Loader2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import TiptapEditor from './TiptapEditor';
@@ -45,6 +47,7 @@ export default function BlogListClient({ initialBlogs }: BlogListClientProps) {
   const [isPublished, setIsPublished] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const openCreateModal = () => {
     setEditingId(null);
@@ -150,6 +153,37 @@ export default function BlogListClient({ initialBlogs }: BlogListClientProps) {
     }
   };
 
+  const handleTogglePublish = async (blog: BlogItem) => {
+    const nextStatus = !blog.isPublished;
+    setTogglingId(blog.id);
+    setBlogs((prev) =>
+      prev.map((b) => (b.id === blog.id ? { ...b, isPublished: nextStatus } : b))
+    );
+
+    try {
+      const res = await fetch(`/api/blogs/${blog.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublished: nextStatus }),
+      });
+      if (!res.ok) throw new Error('Gagal mengubah status artikel');
+
+      toast.success(
+        `Artikel "${blog.title}" ${
+          nextStatus ? 'ditayangkan ke publik' : 'disembunyikan (Draft)'
+        }.`
+      );
+      router.refresh();
+    } catch {
+      setBlogs((prev) =>
+        prev.map((b) => (b.id === blog.id ? { ...b, isPublished: blog.isPublished } : b))
+      );
+      toast.error('Gagal mengubah status artikel.');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const handleDelete = async (id: string, blogTitle: string) => {
     if (!confirm(`Hapus artikel "${blogTitle}"?`)) return;
 
@@ -232,15 +266,24 @@ export default function BlogListClient({ initialBlogs }: BlogListClientProps) {
                   </td>
 
                   <td className="py-3.5 px-4">
-                    {b.isPublished ? (
-                      <span className="px-2 py-0.5 bg-green-50 text-green-700 text-xs font-semibold rounded-md border border-green-200">
-                        Tayang
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-semibold rounded-md">
-                        Draft
-                      </span>
-                    )}
+                    <button
+                      type="button"
+                      disabled={togglingId === b.id}
+                      onClick={() => handleTogglePublish(b)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 ${
+                        b.isPublished
+                          ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                          : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                      }`}
+                      title={b.isPublished ? 'Klik untuk sembunyikan (Draft)' : 'Klik untuk tayangkan ke publik'}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          b.isPublished ? 'bg-green-500' : 'bg-gray-400'
+                        }`}
+                      />
+                      <span>{b.isPublished ? 'Tayang' : 'Draft (Disembunyikan)'}</span>
+                    </button>
                   </td>
 
                   <td className="py-3.5 px-4 text-xs text-gray-400 font-mono">
@@ -251,8 +294,21 @@ export default function BlogListClient({ initialBlogs }: BlogListClientProps) {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         type="button"
+                        disabled={togglingId === b.id}
+                        onClick={() => handleTogglePublish(b)}
+                        className={`p-1.5 rounded-md transition-colors cursor-pointer disabled:opacity-50 ${
+                          b.isPublished
+                            ? 'text-gray-400 hover:text-amber-600 hover:bg-amber-50'
+                            : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                        }`}
+                        title={b.isPublished ? 'Sembunyikan Artikel (Draft)' : 'Tayangkan Artikel'}
+                      >
+                        {b.isPublished ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => openEditModal(b)}
-                        className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+                        className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
                         title="Edit Artikel"
                       >
                         <Edit size={16} />
@@ -260,7 +316,7 @@ export default function BlogListClient({ initialBlogs }: BlogListClientProps) {
                       <button
                         type="button"
                         onClick={() => handleDelete(b.id, b.title)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
                         title="Hapus Artikel"
                       >
                         <Trash2 size={16} />

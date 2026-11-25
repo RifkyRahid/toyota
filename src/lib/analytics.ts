@@ -111,40 +111,37 @@ export function trackDownloadPricelist(data: {
 /**
  * Event 4: Submit Lead Gate WhatsApp (submit_wa_lead)
  * Trigger: Saat mini-form Lead Gate lolos validasi dan disubmit sebelum redirect WA.
- * Dipisahkan dari event lama `click_to_wa` sebagai trigger konversi utama Google Ads di GTM.
+ * Hanya push ke window.dataLayer agar GTM menangani pengiriman ke GA4 & Google Ads secara terpusat (tanpa double-firing).
  */
 export function trackSubmitWaLead(data: {
   lead_source: string;
   car_interest: string;
   domisili: string;
 }) {
-  const normalizedDomisili =
-    data.domisili.toLowerCase().includes('luar') ? 'Luar Batam' : 'Batam';
+  const safeLeadSource =
+    String(data.lead_source ?? '').trim() || 'general_wa';
+  const safeCarInterest =
+    String(data.car_interest ?? '').trim() || 'Konsultasi Pembelian Toyota Batam';
+  const rawDomisili = String(data.domisili ?? '').trim();
+  const normalizedDomisili = rawDomisili.toLowerCase().includes('luar')
+    ? 'Luar Batam'
+    : 'Batam';
 
   try {
     if (typeof window !== 'undefined') {
       const win = window as unknown as {
         dataLayer?: Array<Record<string, unknown>>;
-        gtag?: (...args: unknown[]) => void;
       };
 
       win.dataLayer = win.dataLayer || [];
       win.dataLayer.push({
         event: 'submit_wa_lead',
-        lead_source: data.lead_source,
-        car_interest: data.car_interest,
+        lead_source: safeLeadSource,
+        car_interest: safeCarInterest,
         domisili: normalizedDomisili,
       });
-
-      if (typeof win.gtag === 'function') {
-        win.gtag('event', 'submit_wa_lead', {
-          lead_source: data.lead_source,
-          car_interest: data.car_interest,
-          domisili: normalizedDomisili,
-        });
-      }
     }
   } catch (err) {
-    console.error('GTM/GA4 submit_wa_lead error:', err);
+    console.error('GTM submit_wa_lead error:', err);
   }
 }

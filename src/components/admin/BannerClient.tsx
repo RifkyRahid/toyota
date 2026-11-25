@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, Upload, Loader2, X, Check, Pencil, Smartphone, Monitor } from 'lucide-react';
+import { Plus, Trash2, Upload, Loader2, X, Check, Pencil, Smartphone, Monitor, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 export interface BannerItem {
@@ -36,6 +36,7 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingImageMobile, setUploadingImageMobile] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const openCreateModal = () => {
     setEditingBanner(null);
@@ -172,6 +173,37 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
     }
   };
 
+  const handleToggleActive = async (banner: BannerItem) => {
+    const nextStatus = !banner.isActive;
+    setTogglingId(banner.id);
+    setBanners((prev) =>
+      prev.map((b) => (b.id === banner.id ? { ...b, isActive: nextStatus } : b))
+    );
+
+    try {
+      const res = await fetch(`/api/banners/${banner.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: nextStatus }),
+      });
+      if (!res.ok) throw new Error('Gagal mengubah status banner');
+
+      toast.success(
+        `Banner "${banner.title}" ${
+          nextStatus ? 'ditayangkan ke halaman utama' : 'disembunyikan dari halaman utama'
+        }.`
+      );
+      router.refresh();
+    } catch {
+      setBanners((prev) =>
+        prev.map((b) => (b.id === banner.id ? { ...b, isActive: banner.isActive } : b))
+      );
+      toast.error('Gagal mengubah status banner.');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const handleDelete = async (id: string, bannerTitle: string) => {
     if (!confirm(`Hapus banner "${bannerTitle}"?`)) return;
 
@@ -216,7 +248,9 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
         {banners.map((b) => (
           <div
             key={b.id}
-            className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs flex flex-col justify-between"
+            className={`bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs flex flex-col justify-between transition-opacity ${
+              b.isActive ? '' : 'opacity-65'
+            }`}
           >
             <div className="relative h-48 bg-gray-900 overflow-hidden">
               <img
@@ -224,6 +258,19 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
                 alt={b.title}
                 className="w-full h-full object-cover opacity-80"
               />
+              {/* Badge Status Tayang (Kiri Atas) */}
+              <div className="absolute top-3 left-3 z-10">
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-sm ${
+                    b.isActive
+                      ? 'bg-green-600 text-white'
+                      : 'bg-zinc-700 text-zinc-200'
+                  }`}
+                >
+                  {b.isActive ? 'Tayang' : 'Disembunyikan'}
+                </span>
+              </div>
+
               {/* Badge Ketersediaan Versi Desktop & Mobile */}
               <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-black/60 text-white backdrop-blur-xs">
@@ -258,6 +305,20 @@ export default function BannerClient({ initialBanners }: BannerClientProps) {
                 Urutan: #{b.displayOrder}
               </span>
               <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={togglingId === b.id}
+                  onClick={() => handleToggleActive(b)}
+                  className={`text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
+                    b.isActive
+                      ? 'text-amber-600 hover:text-amber-700'
+                      : 'text-green-600 hover:text-green-700'
+                  }`}
+                  title={b.isActive ? 'Sembunyikan banner dari publik' : 'Tayangkan banner ke publik'}
+                >
+                  {b.isActive ? <EyeOff size={13} /> : <Eye size={13} />}
+                  <span>{b.isActive ? 'Sembunyikan' : 'Tayangkan'}</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => openEditModal(b)}

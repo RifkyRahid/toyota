@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { LeadStatus } from '@prisma/client';
+import { getSession } from '@/lib/auth';
 import { validateIndonesianWa, validateLeadName } from '@/lib/lead-validation';
 
 export const dynamic = 'force-dynamic';
@@ -210,6 +212,55 @@ export async function PATCH(req: NextRequest) {
     console.error('[PATCH /api/leads] Error:', error);
     return NextResponse.json(
       { error: 'Gagal memperbarui data prospek.' },
+      { status: 500 }
+    );
+  }
+}
+
+// ── DELETE /api/leads ─────────────────────────────────────────
+// Hapus satu atau banyak data prospek (misal data testing).
+// Body: { id?: string, ids?: string[] }
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Akses ditolak. Sesi admin tidak valid.' },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const singleId = typeof body?.id === 'string' ? body.id.trim() : '';
+    const rawIds = Array.isArray(body?.ids)
+      ? body.ids.filter((item: unknown): item is string => typeof item === 'string' && item.trim() !== '')
+      : [];
+
+    const targetIds = singleId ? [singleId] : rawIds;
+    if (targetIds.length === 0) {
+      return NextResponse.json(
+        { error: 'ID prospek yang akan dihapus wajib disertakan.' },
+        { status: 400 }
+      );
+    }
+
+    const result = await prisma.lead.deleteMany({
+      where: {
+        id: { in: targetIds },
+      },
+    });
+
+    revalidatePath('/admin/leads');
+    revalidatePath('/admin/dashboard');
+
+    return NextResponse.json({
+      message: `${result.count} data prospek berhasil dihapus.`,
+      deletedCount: result.count,
+    });
+  } catch (error) {
+    console.error('[DELETE /api/leads] Error:', error);
+    return NextResponse.json(
+      { error: 'Gagal menghapus data prospek.' },
       { status: 500 }
     );
   }

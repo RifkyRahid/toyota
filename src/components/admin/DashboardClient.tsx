@@ -463,13 +463,19 @@ export default function DashboardClient({
 
         {/* Recent Leads */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+          <div className="p-5 border-b border-gray-100 flex items-center justify-between gap-2">
             <div>
               <h2 className="text-base font-bold text-gray-900">
                 10 Prospek Terbaru
               </h2>
               <p className="text-xs text-gray-500 mt-0.5">Calon pembeli yang baru saja mengisi form</p>
             </div>
+            <Link
+              href="/admin/leads"
+              className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline shrink-0"
+            >
+              Kelola / Hapus →
+            </Link>
           </div>
 
           <div className="overflow-x-auto">

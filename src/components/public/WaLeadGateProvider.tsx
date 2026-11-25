@@ -106,10 +106,12 @@ export function WaLeadGateProvider({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const submitLockRef = useRef(false);
 
   const openLeadGate = useCallback((params: OpenWaLeadGateParams) => {
     const defaultInterest =
       params.carInterest?.trim() || 'Konsultasi Pembelian Toyota Batam';
+    submitLockRef.current = false;
     setGateContext(params);
     setCarInterest(defaultInterest);
     setError(null);
@@ -119,7 +121,7 @@ export function WaLeadGateProvider({
   }, []);
 
   const closeLeadGate = useCallback(() => {
-    if (isSubmitting) return;
+    if (submitLockRef.current || isSubmitting) return;
     setIsOpen(false);
     setError(null);
   }, [isSubmitting]);
@@ -175,7 +177,7 @@ export function WaLeadGateProvider({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isSubmitting) return;
+    if (submitLockRef.current || isSubmitting) return;
 
     // 1. Cek honeypot (saring bot otomatis secara senyap)
     if (honeypot.trim() !== '') {
@@ -195,6 +197,9 @@ export function WaLeadGateProvider({
       setError(waCheck.error || 'Format nomor WhatsApp tidak valid.');
       return;
     }
+
+    // Kunci handler secara sinkron untuk mencegah double-submit dari tap/klik cepat
+    submitLockRef.current = true;
 
     const finalInterest =
       carInterest.trim() || 'Konsultasi Pembelian Toyota Batam';
@@ -241,6 +246,7 @@ export function WaLeadGateProvider({
       if (res.status === 400) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         setError(data.error || 'Mohon periksa kembali nama dan nomor WhatsApp Anda.');
+        submitLockRef.current = false;
         setIsSubmitting(false);
         return;
       }
@@ -249,12 +255,15 @@ export function WaLeadGateProvider({
       // Fallback: tetap lanjut redirect ke WhatsApp jika jaringan lambat / timeout agar calon pembeli tidak hilang
     }
 
-    // 5. Push event konversi utama baru `submit_wa_lead` ke dataLayer & gtag
+    // 5. Push event konversi utama baru `submit_wa_lead` ke window.dataLayer (via GTM)
     trackSubmitWaLead({
       lead_source: gateContext.leadSource,
       car_interest: finalInterest,
       domisili,
     });
+
+    // Beri jeda singkat (180 ms) agar tag konversi GA4 & Google Ads di GTM sempat mengirim beacon sebelum redirect
+    await new Promise((resolve) => setTimeout(resolve, 180));
 
     // 6. Susun URL WhatsApp dengan pesan yang natural & ramah
     const cleanSalesWa = getCleanSalesWa(salesWhatsapp);
@@ -263,6 +272,7 @@ export function WaLeadGateProvider({
       waMessage
     )}`;
 
+    submitLockRef.current = false;
     setIsSubmitting(false);
     setIsOpen(false);
     openWhatsAppUrl(waUrl);
